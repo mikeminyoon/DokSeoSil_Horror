@@ -7,6 +7,11 @@ public class Hyunsoong : MonoBehaviour
     public Transform[] nodes;          // [착석,기립,가로복도,세로복도상단,화장실,창문]
     public float moveInterval = 6f;    // 노드 간 이동 간격
 
+    [Header("등장 연출 (착석·기립) 대기시간 범위")]
+    public int fixedNodeCount = 2;
+    public Vector2 sitTimeRange = new Vector2(10f, 20f);    // 착석: 최소~최대
+    public Vector2 standTimeRange = new Vector2(3f, 7f);    // 기립: 최소~최대// [착석, 기립, 가로복도, 세로복도상단, 화장실, 창문]
+
     [Header("창문 워크패스")]
     public Transform windowStart;      // 창문 왼쪽 끝
     public Transform windowEnd;        // 창문 오른쪽 끝
@@ -17,13 +22,19 @@ public class Hyunsoong : MonoBehaviour
     public float gazeDrainSpeed = 2f;  // 놓쳤을 때 초당 감소(빠르게)
     public float gazeRequired = 4f;    // 필요 누적량
 
+    [Header("엔진B 확률 이동")]
+    public float cycleTime = 5f;    // 판정 주기(초). 2배 느리게 하려면 늘려
+    public int aiLevel = 3;         // AI 레벨 (1밤=3). rand(0~19) < aiLevel 이면 이동
+
     [Header("참조")]
     public CCTVController cctv;         // CCTV 내림 여부 확인용
+    public MonitorDisplay monitor;   // 스태틱 요청용
 
     // 상태
     private enum State { Moving, WalkPath, Armed, Gone }
     private State state = State.Moving;
 
+    private float currentWait = 0f;   // 이번 노드에서 기다릴 시간 (랜덤 뽑은 값)
     private int currentNode = 0;
     private float timer = 0f;
     private float walkTimer = 0f;       // 워크패스 경과
@@ -34,6 +45,7 @@ public class Hyunsoong : MonoBehaviour
     {
         if (nodes.Length > 0) MoveToNode(0);
         if (cctv == null) cctv = FindAnyObjectByType<CCTVController>();
+        if (monitor == null) monitor = FindAnyObjectByType<MonitorDisplay>();
     }
 
     void Update()
@@ -49,17 +61,33 @@ public class Hyunsoong : MonoBehaviour
     // --- 노드 이동 ---
     void UpdateMoving()
     {
-        // 마지막 노드(창문) 직전까지만 이동, 창문 도달하면 워크패스로
         if (currentNode >= nodes.Length - 1)
         {
             StartWalkPath();
             return;
         }
+
         timer += Time.deltaTime;
-        if (timer >= moveInterval)
+
+        // 착석(0)·기립(1) = 랜덤 고정 시간
+        if (currentNode < fixedNodeCount)
         {
-            timer = 0f;
-            MoveToNode(currentNode + 1);
+            if (timer >= currentWait)
+            {
+                timer = 0f;
+                MoveToNode(currentNode + 1);
+            }
+        }
+        // 그 이후 = 엔진B 확률 이동
+        else
+        {
+            if (timer >= cycleTime)
+            {
+                timer = 0f;
+                int roll = Random.Range(0, 20);
+                if (roll < aiLevel)
+                    MoveToNode(currentNode + 1);
+            }
         }
     }
 
@@ -68,6 +96,16 @@ public class Hyunsoong : MonoBehaviour
         currentNode = index;
         transform.position = nodes[index].position;
         transform.rotation = nodes[index].rotation;
+
+        // 이동 시 CCTV 스태틱 (FNAF식 - 뭔가 움직였다는 신호)
+        if (monitor != null) monitor.GhostMoveStatic();
+
+        // 이번 노드의 대기시간을 랜덤으로 뽑음 (착석·기립만)
+        if (index == 0)
+            currentWait = Random.Range(sitTimeRange.x, sitTimeRange.y);      // 착석
+        else if (index == 1)
+            currentWait = Random.Range(standTimeRange.x, standTimeRange.y);  // 기립
+
         // TODO: 이동 사운드 / 착석·기립 애니
     }
 

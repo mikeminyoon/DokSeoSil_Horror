@@ -5839,7 +5839,7 @@ MonoBehaviour:
   currentRoom: 0
   staticSize: 128
   staticInterval: 0.05
-  switchStaticTime: 0.25
+  switchStaticTime: 0.3
 --- !u!1 &996580350
 GameObject:
   m_ObjectHideFlags: 0
@@ -8605,13 +8605,19 @@ MonoBehaviour:
   - {fileID: 499898564}
   - {fileID: 1001525021}
   moveInterval: 1.49
+  fixedNodeCount: 2
+  sitTimeRange: {x: 10, y: 20}
+  standTimeRange: {x: 3, y: 7}
   windowStart: {fileID: 1001525021}
   windowEnd: {fileID: 309331291}
   walkPathTime: 10.97
   gazeFillSpeed: 1.2
   gazeDrainSpeed: 1
   gazeRequired: 4
+  cycleTime: 5
+  aiLevel: 3
   cctv: {fileID: 0}
+  monitor: {fileID: 0}
 --- !u!54 &1480302294
 Rigidbody:
   m_ObjectHideFlags: 0

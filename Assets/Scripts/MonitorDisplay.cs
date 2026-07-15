@@ -130,6 +130,14 @@ public class MonitorDisplay : MonoBehaviour
         StartSwitch();
     }
 
+    // 귀신 이동 시 짧은 스태틱 (외부에서 호출)
+    public void GhostMoveStatic()
+    {
+        // CCTV 켜져 있을 때만 (꺼져있으면 어차피 스태틱)
+        if (state == State.Active)
+            StartSwitch();
+    }
+
     // 전환 스태틱 시작
     void StartSwitch()
     {
