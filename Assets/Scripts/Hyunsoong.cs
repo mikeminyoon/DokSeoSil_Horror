@@ -10,7 +10,7 @@ public class Hyunsoong : MonoBehaviour
     [Header("등장 연출 (착석·기립) 대기시간 범위")]
     public int fixedNodeCount = 2;
     public Vector2 sitTimeRange = new Vector2(10f, 20f);    // 착석: 최소~최대
-    public Vector2 standTimeRange = new Vector2(3f, 7f);    // 기립: 최소~최대// [착석, 기립, 가로복도, 세로복도상단, 화장실, 창문]
+    public Vector2 standTimeRange = new Vector2(3f, 7f);    // 기립: 최소~최대
 
     [Header("창문 워크패스")]
     public Transform windowStart;      // 창문 왼쪽 끝
@@ -29,6 +29,11 @@ public class Hyunsoong : MonoBehaviour
     [Header("참조")]
     public CCTVController cctv;         // CCTV 내림 여부 확인용
     public MonitorDisplay monitor;   // 스태틱 요청용
+    public ScreenTransitionDetector transitionDetector;   
+    public JumpscareOverlay jumpscare; //ㄱㅏㅂㅌㅜㄱㅌㅜㅣ
+
+    [Header("상태 플래그")]
+    public bool isAudioBroken = false; //(오디오 고장, 지금은 플래그만)
 
     // 상태
     private enum State { Moving, WalkPath, Armed, Gone }
@@ -46,6 +51,20 @@ public class Hyunsoong : MonoBehaviour
         if (nodes.Length > 0) MoveToNode(0);
         if (cctv == null) cctv = FindAnyObjectByType<CCTVController>();
         if (monitor == null) monitor = FindAnyObjectByType<MonitorDisplay>();
+
+        if (transitionDetector == null) transitionDetector = FindAnyObjectByType<ScreenTransitionDetector>();
+        if (jumpscare == null) jumpscare = FindAnyObjectByType<JumpscareOverlay>();
+
+        // 화면 전환 방송 구독 (§0.5)
+        if (transitionDetector != null)
+            transitionDetector.OnScreenTransition += HandleScreenTransition;
+    }
+
+    // 오브젝트 사라질 때 구독 해제 (필수! 안 하면 에러)
+    void OnDestroy()
+    {
+        if (transitionDetector != null)
+            transitionDetector.OnScreenTransition -= HandleScreenTransition;
     }
 
     void Update()
@@ -128,7 +147,7 @@ public class Hyunsoong : MonoBehaviour
         // 2) 응시 판정: GazeBox 닿음(beingGazed) + CCTV 내린 상태
         bool cctvDown = (cctv == null) || !cctv.isCameraDown; // CCTV 안 올림 = 창문 보임
         bool gazingNow = beingGazed && cctvDown;
-        Debug.Log($"워크패스 | beingGazed:{beingGazed} | cctvDown:{cctvDown} | 게이지:{gazeGauge:F1}");
+        //Debug.Log($"워크패스 | beingGazed:{beingGazed} | cctvDown:{cctvDown} | 게이지:{gazeGauge:F1}");
 
         if (gazingNow)
             gazeGauge += gazeFillSpeed * Time.deltaTime;       // 채움
@@ -145,23 +164,55 @@ public class Hyunsoong : MonoBehaviour
         {
             state = State.Armed;  // 워크패스 끝났는데 못 채움 → armed
             // TODO: 다음 화면 전환 시 STRIKE1 (다음 조각에서)
-            Debug.Log("현승 ARMED! (다음 화면 전환 시 오디오 고장)");
+            Debug.Log("현승 ARMED (다음 화면 전환 시 STRIKE1)");
         }
     }
 
-    // 응시 성공 → 공부방1로 복귀
+    // 응시 성공 → 물러남
     void Disappear()
+    {
+        Debug.Log("현승 응시 성공 → 공부방1 복귀");
+        ResetToStart();
+    }
+
+    // 공부방1로 리셋 (응시 성공/STRIKE 공용)
+    void ResetToStart()
     {
         state = State.Moving;
         currentNode = 0;
         timer = 0f;
+        walkTimer = 0f;
+        gazeGauge = 0f;
         MoveToNode(0);
-        Debug.Log("현승 응시 성공 → 공부방1 복귀");
+    }
+
+    // STRIKE1: 팬텀 잔상 + 오디오 고장 + 복귀 (비즉사)
+    void Strike1()
+    {
+        Debug.Log("★★ 현승 STRIKE1! 점프스케어 → 오디오 고장");
+
+        if (jumpscare != null)
+            jumpscare.Play();
+        else
+            Debug.LogWarning("JumpscareOverlay 없음! Canvas에 만들어야 함");
+
+        isAudioBroken = true;
+        // TODO: AudioSystem.BreakAudio() / 점프스케어 스팅
+
+        ResetToStart();   // Disappear() 대신 (로그 혼동 방지)
     }
 
     // --- GazeBox가 호출 (Trigger 감지) ---
     public void SetGazed(bool value)
     {
         beingGazed = value;
+    }
+
+    // 화면 전환 방송을 받았을 때 (§0.5)
+    void HandleScreenTransition()
+    {
+        // armed 상태일 때만 반응 → STRIKE1
+        if (state == State.Armed)
+            Strike1();
     }
 }

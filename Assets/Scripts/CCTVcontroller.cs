@@ -95,4 +95,15 @@ public class CCTVController : MonoBehaviour
 
         viewController.enabled = true;    // 회전은 즉시 ViewController에 넘김 (딜레이 없음)
     }
+
+    // 점프스케어 등으로 CCTV를 강제 취소 (켜기 전 상태로)
+    public void ForceCancel()
+    {
+        if (isCameraDown)
+        {
+            isCameraDown = false;
+            returning = true;              // 위치는 부드럽게 집으로
+            viewController.enabled = true; // 시야 회전 복구
+        }
+    }
 }
