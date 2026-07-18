@@ -7,16 +7,19 @@ public class ScreenTransitionDetector : MonoBehaviour
 {
     [Header("참조")]
     public CCTVController cctv;
-    // TODO: public ResetPanelController resetPanel;  // 왼쪽 구역 리셋 패널 (미구현)
+    public PanelController panel;    
 
     public event Action OnScreenTransition;
 
     private bool lastCameraDown;
+    private bool lastPanelOpen; 
 
     void Start()
     {
         if (cctv == null) cctv = GetComponent<CCTVController>();
+        if (panel == null) panel = GetComponent<PanelController>();  
         lastCameraDown = cctv != null && cctv.isCameraDown;
+        lastPanelOpen = panel != null && panel.isPanelOpen;  
     }
 
     void Update()
@@ -30,7 +33,12 @@ public class ScreenTransitionDetector : MonoBehaviour
             transitioned = true;
         }
 
-        // TODO: 리셋 패널 올림/내림도 여기에 추가
+        // 리셋 패널 열림/닫힘 = 하드컷                                    ← 추가
+        if (panel != null && panel.isPanelOpen != lastPanelOpen)
+        {
+            lastPanelOpen = panel.isPanelOpen;
+            transitioned = true;
+        }
 
         if (transitioned)
         {

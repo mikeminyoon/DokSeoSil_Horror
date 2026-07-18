@@ -12,6 +12,7 @@ public class JumpscareOverlay : MonoBehaviour
     [Header("조작 잠금 대상")]
     public ViewController viewController;
     public CCTVController cctv;
+    public PanelController panel;  
 
     private Image image;
     private float timer = 0f;
@@ -22,6 +23,7 @@ public class JumpscareOverlay : MonoBehaviour
         image = GetComponent<Image>();
         if (viewController == null) viewController = FindAnyObjectByType<ViewController>();
         if (cctv == null) cctv = FindAnyObjectByType<CCTVController>();
+        if (panel == null) panel = FindAnyObjectByType<PanelController>();
 
         // 시작 시 꺼둠
         if (image != null) image.enabled = false;
@@ -45,11 +47,11 @@ public class JumpscareOverlay : MonoBehaviour
 
         // CCTV 켜는 중이었으면 취소 (후폭풍 연출 보이게)
         if (cctv != null) cctv.ForceCancel();
-
+        if (panel != null) panel.ForceCancel();  
         // 조작 전부 잠금
         if (viewController != null) viewController.enabled = false;
         if (cctv != null) cctv.enabled = false;
-
+        if (panel != null) panel.enabled = false; 
         // TODO: 점프스케어 스팅
     }
 
@@ -59,5 +61,6 @@ public class JumpscareOverlay : MonoBehaviour
         if (image != null) image.enabled = false;
         if (viewController != null) viewController.enabled = true;
         if (cctv != null) cctv.enabled = true;
+         if (panel != null) panel.enabled = true;
     }
 }

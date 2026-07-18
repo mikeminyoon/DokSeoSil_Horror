@@ -34,7 +34,7 @@ public class ViewController : MonoBehaviour
     // ===== 회전 부드러움 =====
     [Header("회전 속도")]
     public float rotateSpeed = 8f;  // 클수록 빨리 따라감
-
+    private bool suppressEdge = false;  
     // ===== 내부 상태 =====
     private float edgeTimer = 0f;        // 가장자리에 머문 시간 누적
     private Camera cam;                  // 자식 카메라
@@ -70,7 +70,17 @@ public class ViewController : MonoBehaviour
 
     // 좌우 가장자리에 일정 시간 머물면 옆 구역으로 전환
     void HandleZoneSwitch(float mx)
-    {
+    {   
+        // 억제 중이면 마우스가 가장자리를 벗어나야 해제
+        if (suppressEdge)
+        {
+            if (Mathf.Abs(mx) < edgeThreshold)
+                suppressEdge = false;    // 손 뗐으니 해제
+            edgeTimer = 0f;
+            return;                       // 억제 중엔 구역 전환 안 함
+        }
+
+
         if (mx > edgeThreshold)          // 오른쪽 끝
         {
             edgeTimer += Time.deltaTime;
@@ -95,5 +105,13 @@ public class ViewController : MonoBehaviour
         {
             edgeTimer = 0f;  // 가운데로 돌아오면 타이머 리셋
         }
+    }
+
+    // 마우스가 가장자리를 벗어날 때까지 구역 전환 억제
+    // (패널 닫기처럼 가장자리에서 나가는 조작이 구역 전환으로 오인되는 것 방지)
+    public void SuppressEdgeUntilRelease()
+    {
+        suppressEdge = true;
+        edgeTimer = 0f;
     }
 }

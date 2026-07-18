@@ -8,6 +8,7 @@ public class CCTVController : MonoBehaviour
     [Header("참조")]
     public ViewController viewController;
     public Transform cctvViewPoint;
+    public PanelController panel;
 
     [Header("작동 조건")]
     public int allowedZone = 1;         // 가운데 구역에서만 켤 수 있음
@@ -64,13 +65,16 @@ public class CCTVController : MonoBehaviour
         }
         else if (returning)
         {
-            // CCTV 꺼짐, 복귀 중: 위치만 집으로 Lerp (회전은 ViewController가 이미 잡는 중)
             camT.localPosition = Vector3.Lerp(camT.localPosition, savedLocalPos, moveSpeed * Time.deltaTime);
+            camT.localRotation = Quaternion.Slerp(camT.localRotation, savedLocalRot, moveSpeed * Time.deltaTime);
 
-            // 집에 거의 도착하면 복귀 완료
-            if (Vector3.Distance(camT.localPosition, savedLocalPos) < 0.001f)
+            float posDist = Vector3.Distance(camT.localPosition, savedLocalPos);
+            float rotDist = Quaternion.Angle(camT.localRotation, savedLocalRot);
+
+            if (posDist < 0.02f && rotDist < 0.5f)
             {
                 camT.localPosition = savedLocalPos;
+                camT.localRotation = savedLocalRot;
                 returning = false;
             }
         }
@@ -80,12 +84,17 @@ public class CCTVController : MonoBehaviour
     {
         isCameraDown = true;
 
-        // 복귀 중이 아닐 때만 집 위치 저장 (복귀 중 재진입 시 원래 집 유지)
         if (!returning)
+        {
             savedLocalPos = camT.localPosition;
-
+            savedLocalRot = camT.localRotation;
+        }
         returning = false;
-        viewController.enabled = false;   // 시야 회전 잠금
+
+        // 패널이 복귀 중이었으면 중단시킴 (카메라 뺏기)
+        if (panel != null) panel.CancelReturn();
+
+        viewController.enabled = false;
     }
 
     void ExitCCTV()
@@ -105,5 +114,12 @@ public class CCTVController : MonoBehaviour
             returning = true;              // 위치는 부드럽게 집으로
             viewController.enabled = true; // 시야 회전 복구
         }
+    }
+
+    public bool GetReturning() { return returning; }
+
+    public void CancelReturn()
+    {
+        returning = false;
     }
 }
