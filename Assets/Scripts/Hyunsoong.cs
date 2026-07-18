@@ -31,6 +31,7 @@ public class Hyunsoong : MonoBehaviour
     public MonitorDisplay monitor;   // 스태틱 요청용
     public ScreenTransitionDetector transitionDetector;   
     public JumpscareOverlay jumpscare; //ㄱㅏㅂㅌㅜㄱㅌㅜㅣ
+    public AudioSystem audioSystem; //예아
 
     [Header("상태 플래그")]
     public bool isAudioBroken = false; //(오디오 고장, 지금은 플래그만)
@@ -51,7 +52,7 @@ public class Hyunsoong : MonoBehaviour
         if (nodes.Length > 0) MoveToNode(0);
         if (cctv == null) cctv = FindAnyObjectByType<CCTVController>();
         if (monitor == null) monitor = FindAnyObjectByType<MonitorDisplay>();
-
+        if (audioSystem == null) audioSystem = FindAnyObjectByType<AudioSystem>();
         if (transitionDetector == null) transitionDetector = FindAnyObjectByType<ScreenTransitionDetector>();
         if (jumpscare == null) jumpscare = FindAnyObjectByType<JumpscareOverlay>();
 
@@ -190,16 +191,12 @@ public class Hyunsoong : MonoBehaviour
     void Strike1()
     {
         Debug.Log("★★ 현승 STRIKE1! 점프스케어 → 오디오 고장");
+        if (jumpscare != null) jumpscare.Play();
 
-        if (jumpscare != null)
-            jumpscare.Play();
-        else
-            Debug.LogWarning("JumpscareOverlay 없음! Canvas에 만들어야 함");
+        // 오디오 고장
+        if (audioSystem != null) audioSystem.BreakAudio();
 
-        isAudioBroken = true;
-        // TODO: AudioSystem.BreakAudio() / 점프스케어 스팅
-
-        ResetToStart();   // Disappear() 대신 (로그 혼동 방지)
+        ResetToStart();
     }
 
     // --- GazeBox가 호출 (Trigger 감지) ---
