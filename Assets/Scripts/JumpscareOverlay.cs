@@ -14,6 +14,12 @@ public class JumpscareOverlay : MonoBehaviour
     public CCTVController cctv;
     public PanelController panel;  
 
+[Header("게임오버")]
+    public Color strikeColor = Color.red;        // STRIKE1 색
+    public Color gameOverColor = new Color(0.3f, 0f, 0.4f);  // 게임오버 색(보라)
+
+    private bool isGameOver = false;
+
     private Image image;
     private float timer = 0f;
     private bool playing = false;
@@ -30,7 +36,8 @@ public class JumpscareOverlay : MonoBehaviour
     }
 
     void Update()
-    {
+    {   
+        if (isGameOver) return;   // 게임오버면 아무것도 안 함 (영구 잠금)
         if (!playing) return;
 
         timer += Time.deltaTime;
@@ -43,7 +50,7 @@ public class JumpscareOverlay : MonoBehaviour
         playing = true;
         timer = 0f;
 
-        if (image != null) image.enabled = true;
+        if (image != null) { image.color = strikeColor; image.enabled = true; }
 
         // CCTV 켜는 중이었으면 취소 (후폭풍 연출 보이게)
         if (cctv != null) cctv.ForceCancel();
@@ -53,6 +60,20 @@ public class JumpscareOverlay : MonoBehaviour
         if (cctv != null) cctv.enabled = false;
         if (panel != null) panel.enabled = false; 
         // TODO: 점프스케어 스팅
+    }
+
+    // STRIKE2 (즉사/게임오버) — 안 풀림, 영구 잠금
+    public void PlayGameOver()
+    {
+        isGameOver = true;
+        if (image != null) { image.color = gameOverColor; image.enabled = true; }
+
+        if (cctv != null) cctv.ForceCancel();
+        if (panel != null) panel.ForceCancel();
+        if (viewController != null) viewController.enabled = false;
+        if (cctv != null) cctv.enabled = false;
+        if (panel != null) panel.enabled = false;
+        // Stop() 안 부름 → 영구 잠금 (게임오버 상태)
     }
 
     void Stop()

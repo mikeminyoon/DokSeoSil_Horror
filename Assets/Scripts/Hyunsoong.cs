@@ -199,6 +199,18 @@ public class Hyunsoong : MonoBehaviour
         ResetToStart();
     }
 
+    // STRIKE2: 퍼펫 즉사 (게임오버). 오디오 고장 방치 시.
+    public void Strike2()
+    {
+        Debug.Log("☠☠☠ 현승 STRIKE2 - 퍼펫 즉사! 게임오버");
+
+        // 퍼펫 즉사 점프스케어 (임시: JumpscareOverlay를 게임오버 모드로)
+        if (jumpscare != null)
+            jumpscare.PlayGameOver();
+
+        // TODO: GameManager.GameOver() — 지금은 오버레이가 조작 영구 잠금
+    }
+    
     // --- GazeBox가 호출 (Trigger 감지) ---
     public void SetGazed(bool value)
     {

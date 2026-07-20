@@ -6,17 +6,17 @@ RenderTexture:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: LowResRT
+  m_Name: CCTV_QD
   m_ImageContentsHash:
     serializedVersion: 2
     Hash: 00000000000000000000000000000000
   m_IsAlphaChannelOptional: 0
   serializedVersion: 6
-  m_Width: 320
-  m_Height: 240
+  m_Width: 256
+  m_Height: 256
   m_AntiAliasing: 1
   m_MipCount: -1
-  m_DepthStencilFormat: 0
+  m_DepthStencilFormat: 94
   m_ColorFormat: 8
   m_MipMap: 0
   m_GenerateMips: 1
