@@ -3,9 +3,18 @@ using UnityEngine;
 // 현승: 노드 이동 → 창문 워크패스 → 응시 대응
 public class Hyunsoong : MonoBehaviour
 {
-    [Header("노드 경로 (순서대로)")]
-    public Transform[] nodes;          // [착석,기립,가로복도,세로복도상단,화장실,창문]
-    public float moveInterval = 6f;    // 노드 간 이동 간격
+    [Header("루트 (각각 노드 배열)")]
+    public Transform[] routeR1;    // [착석,기립,가로복도,세로복도상단,화장실,창문]
+    public Transform[] routeR2;    // [착석,기립,공부방2,가로복도,세로복도상단,화장실,창문]
+    public Transform[] routeR3; 
+    public Transform[] routeR4; 
+
+    [Header("날짜 (나중에 GameManager가 세팅)")]
+    public int currentNight = 1;   // 1밤=R1만 / 2밤~=R1·R2
+    private Transform[] nodes;          // [착석,기립,가로복도,세로복도상단,화장실,창문]
+
+    [Header("창고 노드 (소리 판별용)")]
+    public Transform storageNode;  // ← Node_창고 연
 
     [Header("등장 연출 (착석·기립) 대기시간 범위")]
     public int fixedNodeCount = 2;
@@ -25,6 +34,11 @@ public class Hyunsoong : MonoBehaviour
     [Header("엔진B 확률 이동")]
     public float cycleTime = 5f;    // 판정 주기(초). 2배 느리게 하려면 늘려
     public int aiLevel = 3;         // AI 레벨 (1밤=3). rand(0~19) < aiLevel 이면 이동
+
+    [Header("행동 굴림 가중치")]
+    public int weightForward = 85;   // 전진
+    public int weightStay = 10;      // 제자리
+    public int weightRetreat = 5;   // 후퇴
 
     [Header("참조")]
     public CCTVController cctv;         // CCTV 내림 여부 확인용
@@ -48,7 +62,8 @@ public class Hyunsoong : MonoBehaviour
     private bool beingGazed = false;    // 지금 GazeBox가 닿아있나 (Trigger가 갱신)
 
     void Start()
-    {
+    {   
+        SelectRoute();   // 루트 선택
         if (nodes.Length > 0) MoveToNode(0);
         if (cctv == null) cctv = FindAnyObjectByType<CCTVController>();
         if (monitor == null) monitor = FindAnyObjectByType<MonitorDisplay>();
@@ -106,9 +121,28 @@ public class Hyunsoong : MonoBehaviour
                 timer = 0f;
                 int roll = Random.Range(0, 20);
                 if (roll < aiLevel)
-                    MoveToNode(currentNode + 1);
+                    DoActionRoll();
             }
         }
+    }
+
+// 그날 허용된 루트 중 하나를 랜덤 선택
+    void SelectRoute()
+    {
+        // 허용 루트 목록 만들기 (날짜별)
+        var allowed = new System.Collections.Generic.List<Transform[]>();
+        allowed.Add(routeR1);                                  // R1은 항상
+        if (currentNight >= 2 && routeR2 != null && routeR2.Length > 0)
+            allowed.Add(routeR2);                              // 2밤부터 R2
+        if(currentNight >= 2 && routeR4 != null && routeR4.Length > 0)
+            allowed.Add(routeR4);                              // 2밤부터 R4
+        
+        // TODO: 3밤~ R1'(로비 잠복), R3(환풍구) 추가
+
+        nodes = allowed[Random.Range(0, allowed.Count)];
+
+        string routeName = nodes == routeR1 ? "R1" : (nodes == routeR2 ? "R2" : "R4(창고)");
+        Debug.Log($"현승 루트 선택: {routeName} (밤 {currentNight})");
     }
 
     void MoveToNode(int index)
@@ -120,7 +154,13 @@ public class Hyunsoong : MonoBehaviour
         // 이동 시 CCTV 스태틱 (FNAF식 - 뭔가 움직였다는 신호)
         if (monitor != null) monitor.GhostMoveStatic();
 
-        // 이번 노드의 대기시간을 랜덤으로 뽑음 (착석·기립만)
+        // 이번 노드의 대기시간을 랜덤으로 뽑음 (착석·기립만) + Cam7이면 와당탕 소리?
+        if (nodes[index] == storageNode)
+        {
+            Debug.Log("와장창소리");
+            //todo: phase 8 소리 재생 시스템
+        }
+
         if (index == 0)
             currentWait = Random.Range(sitTimeRange.x, sitTimeRange.y);      // 착석
         else if (index == 1)
@@ -184,6 +224,8 @@ public class Hyunsoong : MonoBehaviour
         timer = 0f;
         walkTimer = 0f;
         gazeGauge = 0f;
+
+        SelectRoute();   // 루트 재선택
         MoveToNode(0);
     }
 
@@ -209,6 +251,29 @@ public class Hyunsoong : MonoBehaviour
             jumpscare.PlayGameOver();
 
         // TODO: GameManager.GameOver() — 지금은 오버레이가 조작 영구 잠금
+    }
+
+    // 행동 굴림: 전진 / 멈춤 / 후퇴
+    void DoActionRoll()
+    {
+        int total = weightForward + weightStay + weightRetreat;
+        int r = Random.Range(0, total);
+
+        if (r < weightForward)
+        {
+            MoveToNode(currentNode + 1);                  // 전진
+        }
+        else if (r < weightForward + weightStay)
+        {
+            // 멈춤 — 그 자리 유지
+        }
+        else
+        {
+            // 후퇴 (단, 착석·기립 구간으로는 안 돌아감)
+            if (currentNode > fixedNodeCount)
+                MoveToNode(currentNode - 1);
+            // 이미 최소 노드면 멈춤 취급
+        }
     }
     
     // --- GazeBox가 호출 (Trigger 감지) ---
