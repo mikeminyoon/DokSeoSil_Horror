@@ -66,6 +66,9 @@ public class ViewController : MonoBehaviour
         Quaternion targetRot = Quaternion.Euler(targetPitch, targetYaw, 0f);
         transform.rotation = Quaternion.Slerp(
             transform.rotation, targetRot, rotateSpeed * Time.deltaTime);
+
+            // 진단용
+        //Debug.Log($"[VIEW] zone:{currentZone} | enabled:{enabled} | mx:{(Input.mousePosition.x/Screen.width):F2}");
     }
 
     // 좌우 가장자리에 일정 시간 머물면 옆 구역으로 전환

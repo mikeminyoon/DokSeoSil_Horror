@@ -8,7 +8,7 @@ public class AudioSystem : MonoBehaviour
     public Hyunsoong hyunsoong;
     [Header("오디오 고장")]
     public bool isAudioBroken = false;
-    public float breakTimeLimit = 17f;    // 이 시간 안에 리셋 못 하면 STRIKE2 (다음 구현)
+    public float breakTimeLimit = 32f;    // 이 시간 안에 리셋 못 하면 STRIKE2 (다음 구현)
 
     [Header("리셋")]
     public float resetDuration = 5f;      // 리셋에 걸리는 시간

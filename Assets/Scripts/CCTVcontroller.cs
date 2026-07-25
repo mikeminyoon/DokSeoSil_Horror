@@ -24,10 +24,11 @@ public class CCTVController : MonoBehaviour
     private Camera cam;
     private Transform camT;
 
-    private Vector3 savedLocalPos;
-    private Quaternion savedLocalRot;
-    private bool returning = false;
+    // 카메라 원래 집 위치 (고정 — 저장 안 하고 이걸로 복귀)
+    private Vector3 homeLocalPos;
+    private Quaternion homeLocalRot;
 
+    private bool returning = false;
     private bool wasInBottom = false;   // 직전 프레임에 아래 영역에 있었나 (재진입 감지용)
 
     void Start()
@@ -36,6 +37,10 @@ public class CCTVController : MonoBehaviour
         camT = cam.transform;
         if (viewController == null)
             viewController = GetComponent<ViewController>();
+
+        // 처음 위치 = 영원한 집 (구역 전환은 부모 회전이라 카메라 자식 위치는 안 바뀜)
+        homeLocalPos = camT.localPosition;
+        homeLocalRot = camT.localRotation;
     }
 
     void Update()
@@ -65,16 +70,17 @@ public class CCTVController : MonoBehaviour
         }
         else if (returning)
         {
-            camT.localPosition = Vector3.Lerp(camT.localPosition, savedLocalPos, moveSpeed * Time.deltaTime);
-            camT.localRotation = Quaternion.Slerp(camT.localRotation, savedLocalRot, moveSpeed * Time.deltaTime);
+            // 복귀: 항상 고정된 집으로 (어중간한 위치 저장 문제 없음)
+            camT.localPosition = Vector3.Lerp(camT.localPosition, homeLocalPos, moveSpeed * Time.deltaTime);
+            camT.localRotation = Quaternion.Slerp(camT.localRotation, homeLocalRot, moveSpeed * Time.deltaTime);
 
-            float posDist = Vector3.Distance(camT.localPosition, savedLocalPos);
-            float rotDist = Quaternion.Angle(camT.localRotation, savedLocalRot);
+            float posDist = Vector3.Distance(camT.localPosition, homeLocalPos);
+            float rotDist = Quaternion.Angle(camT.localRotation, homeLocalRot);
 
             if (posDist < 0.02f && rotDist < 0.5f)
             {
-                camT.localPosition = savedLocalPos;
-                camT.localRotation = savedLocalRot;
+                camT.localPosition = homeLocalPos;
+                camT.localRotation = homeLocalRot;
                 returning = false;
             }
         }
@@ -84,15 +90,11 @@ public class CCTVController : MonoBehaviour
     {
         isCameraDown = true;
 
-        if (!returning)
-        {
-            savedLocalPos = camT.localPosition;
-            savedLocalRot = camT.localRotation;
-        }
-        returning = false;
-
         // 패널이 복귀 중이었으면 중단시킴 (카메라 뺏기)
         if (panel != null) panel.CancelReturn();
+
+        // 저장 안 함 — 복귀는 항상 homeLocalPos로. (어중간한 위치 저장 버그 제거)
+        returning = false;
 
         viewController.enabled = false;
     }

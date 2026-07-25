@@ -8,6 +8,16 @@ public class Hyunsoong : MonoBehaviour
     public Transform[] routeR2;    // [착석,기립,공부방2,가로복도,세로복도상단,화장실,창문]
     public Transform[] routeR3; 
     public Transform[] routeR4; 
+    public Transform[] routeR1p;    // ← 로비 잠복
+
+    [Header("로비 잠복")]
+    public Transform lobbyNode;         // Node_로비 연결
+    public float lobbyLurkMin = 8f;     // 잠복 최소 시간
+    public float lobbyLurkMax = 15f;    // 잠복 최대 시간
+
+    private float lurkTimer = 0f;       // 잠복 경과
+    private bool isLurking = false;     // 잠복 중?
+    private float lurkDuration = 0f;
 
     [Header("날짜 (나중에 GameManager가 세팅)")]
     public int currentNight = 1;   // 1밤=R1만 / 2밤~=R1·R2
@@ -115,7 +125,20 @@ public class Hyunsoong : MonoBehaviour
         }
         // 그 이후 = 엔진B 확률 이동
         else
-        {
+        {   
+            // 로비 잠복 중이면 타이머 다 될 때까지 안 움직임
+            if (isLurking)
+            {
+                lurkTimer += Time.deltaTime;
+                if (lurkTimer >= lurkDuration)
+                {
+                    isLurking = false;
+                    Debug.Log("★ 현승 로비 잠복 종료 → 이동 재개");
+                }
+                return;   // 잠복 중엔 확률 이동 안 함
+            }
+
+            //잠복 아니면 다시 엔진대로 이동
             if (timer >= cycleTime)
             {
                 timer = 0f;
@@ -136,12 +159,16 @@ public class Hyunsoong : MonoBehaviour
             allowed.Add(routeR2);                              // 2밤부터 R2
         if(currentNight >= 2 && routeR4 != null && routeR4.Length > 0)
             allowed.Add(routeR4);                              // 2밤부터 R4
-        
-        // TODO: 3밤~ R1'(로비 잠복), R3(환풍구) 추가
+        if (currentNight >= 3 && routeR1p != null && routeR1p.Length > 0)
+            allowed.Add(routeR1p);      // ← 3밤부터 로비 잠복
+        // TODO: 3밤~ R3(환풍구)
 
         nodes = allowed[Random.Range(0, allowed.Count)];
 
-        string routeName = nodes == routeR1 ? "R1" : (nodes == routeR2 ? "R2" : "R4(창고)");
+        string routeName = nodes == routeR1 ? "R1"
+                         : nodes == routeR2 ? "R2"
+                         : nodes == routeR4 ? "R4(창고)"
+                         : "R1'(로비잠복)";
         Debug.Log($"현승 루트 선택: {routeName} (밤 {currentNight})");
     }
 
@@ -155,10 +182,19 @@ public class Hyunsoong : MonoBehaviour
         if (monitor != null) monitor.GhostMoveStatic();
 
         // 이번 노드의 대기시간을 랜덤으로 뽑음 (착석·기립만) + Cam7이면 와당탕 소리?
-        if (nodes[index] == storageNode)
+        if (storageNode != null && nodes[index] == storageNode)
         {
             Debug.Log("와장창소리");
             //todo: phase 8 소리 재생 시스템
+        }
+
+        // 로비 도착 → 잠복 시작
+        if (lobbyNode != null && nodes[index] == lobbyNode)
+        {
+            isLurking = true;
+            lurkTimer = 0f;
+            lurkDuration = Random.Range(lobbyLurkMin, lobbyLurkMax);
+            Debug.Log($"★ 현승 로비 잠복 시작 ({lurkDuration:F1}초)");
         }
 
         if (index == 0)
@@ -224,6 +260,9 @@ public class Hyunsoong : MonoBehaviour
         timer = 0f;
         walkTimer = 0f;
         gazeGauge = 0f;
+
+        isLurking = false;      // ← 로비잠복중인가?
+        lurkTimer = 0f;         // ← 로비잠복
 
         SelectRoute();   // 루트 재선택
         MoveToNode(0);

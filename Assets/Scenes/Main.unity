@@ -2629,6 +2629,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 253706675}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &254275876
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 254275877}
+  m_Layer: 0
+  m_Name: Hs_Lobby
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &254275877
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 254275876}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -26.54, y: 0.03, z: -9.12}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 787993924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &298572569
 GameObject:
   m_ObjectHideFlags: 0
@@ -6428,6 +6459,8 @@ Transform:
   - {fileID: 1936563071}
   - {fileID: 1838161392}
   - {fileID: 499898564}
+  - {fileID: 1319604427}
+  - {fileID: 254275877}
   - {fileID: 1001525021}
   - {fileID: 309331291}
   m_Father: {fileID: 1242645426}
@@ -8497,13 +8530,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1113892808}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.11683698, y: -0.8819836, z: 0.29765195, w: -0.34620425}
-  m_LocalPosition: {x: -15.945002, y: 0.621, z: -5.009}
+  m_LocalRotation: {x: -0.13008428, y: -0.86986524, z: 0.33140048, w: -0.34144744}
+  m_LocalPosition: {x: -15.827, y: 0.866, z: -5.028}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 797595391}
-  m_LocalEulerAnglesHint: {x: 37.297, y: -222.863, z: 0}
+  m_LocalEulerAnglesHint: {x: 41.712, y: -222.863, z: 0}
 --- !u!114 &1113892810
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10770,6 +10803,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1319359552}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1319604426
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1319604427}
+  m_Layer: 0
+  m_Name: Hs_Bathroom_Inside
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1319604427
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1319604426}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -21.456, y: 0.03, z: 4.174}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 787993924}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1334102814
 GameObject:
   m_ObjectHideFlags: 0
@@ -11907,6 +11971,8 @@ MonoBehaviour:
   - {fileID: 1152969258}
   - {fileID: 1936563071}
   - {fileID: 499898564}
+  - {fileID: 1319604427}
+  - {fileID: 1838161392}
   - {fileID: 1001525021}
   routeR2:
   - {fileID: 1849368575}
@@ -11914,6 +11980,7 @@ MonoBehaviour:
   - {fileID: 2117720241}
   - {fileID: 1936563071}
   - {fileID: 499898564}
+  - {fileID: 1319604427}
   - {fileID: 1001525021}
   routeR3: []
   routeR4:
@@ -11924,19 +11991,30 @@ MonoBehaviour:
   - {fileID: 1936563071}
   - {fileID: 1838161392}
   - {fileID: 1001525021}
-  currentNight: 2
+  routeR1p:
+  - {fileID: 1849368575}
+  - {fileID: 1152969258}
+  - {fileID: 1936563071}
+  - {fileID: 254275877}
+  - {fileID: 499898564}
+  - {fileID: 1838161392}
+  - {fileID: 1001525021}
+  lobbyNode: {fileID: 254275877}
+  lobbyLurkMin: 8
+  lobbyLurkMax: 15
+  currentNight: 1
   storageNode: {fileID: 1231459881}
   fixedNodeCount: 2
-  sitTimeRange: {x: 3.75, y: 8.7}
-  standTimeRange: {x: 3, y: 7}
+  sitTimeRange: {x: 10, y: 20}
+  standTimeRange: {x: 3, y: 12}
   windowStart: {fileID: 1001525021}
   windowEnd: {fileID: 309331291}
   walkPathTime: 10.97
   gazeFillSpeed: 1.2
   gazeDrainSpeed: 1
   gazeRequired: 4
-  cycleTime: 2.87
-  aiLevel: 18
+  cycleTime: 5
+  aiLevel: 3
   weightForward: 85
   weightStay: 10
   weightRetreat: 5
@@ -12114,9 +12192,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97a955a7e9523429884673da0306f099, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioSystem
-  hyunsoong: {fileID: 0}
+  hyunsoong: {fileID: 1480302293}
   isAudioBroken: 0
-  breakTimeLimit: 14
+  breakTimeLimit: 32
   resetDuration: 5
 --- !u!4 &1490514180
 Transform:
