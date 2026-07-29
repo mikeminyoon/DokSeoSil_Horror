@@ -21,8 +21,8 @@ public class ViewController : MonoBehaviour
 
     // ===== 미세 추적 (구역 안에서 마우스 따라 까딱) =====
     [Header("미세 추적 범위")]
-    public float microYaw = 12f;    // 좌우로 까딱이는 최대 각도
-    public float microPitch = 7f;   // 상하로 까딱이는 최대 각도
+    public float[] microYaw = { 10f, 17f, 5f, 10f };    // 왼/가운데/오른쪽(환풍구)/후면
+    public float[] microPitch = { 7f, 7f, 4f, 7f };    // 상하로 까딱이는 최대 각도
 
     // ===== 구역 전환 =====
     [Header("구역 전환")]
@@ -59,8 +59,8 @@ public class ViewController : MonoBehaviour
 
         // --- 3. 목표 각도 계산 ---
         // 현재 구역 기준각 + 마우스에 따른 미세 추적
-        float targetYaw = zoneAngles[currentZone] + mx * microYaw;
-        float targetPitch = zonePitch[currentZone] - my * microPitch;  // 마우스 위로=화면 위로 보려면 부호 반전
+        float targetYaw = zoneAngles[currentZone] + mx * microYaw[currentZone];  // 마우스 오른쪽=양수=오른쪽 구역
+        float targetPitch = zonePitch[currentZone] - my * microPitch[currentZone];  // 마우스 위로=화면 위로 보려면 부호 반전
 
         // --- 4. 부드럽게 회전 ---
         Quaternion targetRot = Quaternion.Euler(targetPitch, targetYaw, 0f);
