@@ -78,4 +78,12 @@ public class ShutterController : MonoBehaviour
         isLightOn = false;
         if (ventLight != null) ventLight.enabled = false;
     }
+
+    // 점프스케어 등으로 조작 강제 잠금 (버튼 숨김 + 라이트 끔)
+    public void ForceLock()
+    {
+        SetButtons(false);
+        if (ventLight != null) ventLight.enabled = false;
+        isLightOn = false;
+    }
 }

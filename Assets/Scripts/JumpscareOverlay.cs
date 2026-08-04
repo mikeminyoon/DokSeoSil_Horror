@@ -3,23 +3,22 @@ using UnityEngine.UI;
 
 // 점프스케어 연출 (임시: 빨간 화면).
 // 나중에 Image의 sprite만 현승 얼굴로 바꾸면 완성.
-// Canvas 아래 화면 꽉 채우는 Image에 붙인다.
 public class JumpscareOverlay : MonoBehaviour
 {
     [Header("설정")]
-    public float duration = 1.5f;        // 잔상 지속 시간 (1~2초)
+    public float duration = 1.5f;
 
     [Header("조작 잠금 대상")]
     public ViewController viewController;
     public CCTVController cctv;
-    public PanelController panel;  
+    public PanelController panel;
+    public ShutterController shutter;   // ← 추가
 
-[Header("게임오버")]
-    public Color strikeColor = Color.red;        // STRIKE1 색
-    public Color gameOverColor = new Color(0.3f, 0f, 0.4f);  // 게임오버 색(보라)
+    [Header("게임오버")]
+    public Color strikeColor = Color.red;
+    public Color gameOverColor = new Color(0.3f, 0f, 0.4f);
 
     private bool isGameOver = false;
-
     private Image image;
     private float timer = 0f;
     private bool playing = false;
@@ -30,14 +29,14 @@ public class JumpscareOverlay : MonoBehaviour
         if (viewController == null) viewController = FindAnyObjectByType<ViewController>();
         if (cctv == null) cctv = FindAnyObjectByType<CCTVController>();
         if (panel == null) panel = FindAnyObjectByType<PanelController>();
+        if (shutter == null) shutter = FindAnyObjectByType<ShutterController>();   // ← 추가
 
-        // 시작 시 꺼둠
         if (image != null) image.enabled = false;
     }
 
     void Update()
-    {   
-        if (isGameOver) return;   // 게임오버면 아무것도 안 함 (영구 잠금)
+    {
+        if (isGameOver) return;
         if (!playing) return;
 
         timer += Time.deltaTime;
@@ -52,17 +51,17 @@ public class JumpscareOverlay : MonoBehaviour
 
         if (image != null) { image.color = strikeColor; image.enabled = true; }
 
-        // CCTV 켜는 중이었으면 취소 (후폭풍 연출 보이게)
         if (cctv != null) cctv.ForceCancel();
-        if (panel != null) panel.ForceCancel();  
+        if (panel != null) panel.ForceCancel();
+
         // 조작 전부 잠금
         if (viewController != null) viewController.enabled = false;
         if (cctv != null) cctv.enabled = false;
-        if (panel != null) panel.enabled = false; 
+        if (panel != null) panel.enabled = false;
+        if (shutter != null) { shutter.ForceLock(); shutter.enabled = false; }   // ← 추가
         // TODO: 점프스케어 스팅
     }
 
-    // STRIKE2 (즉사/게임오버) — 안 풀림, 영구 잠금
     public void PlayGameOver()
     {
         isGameOver = true;
@@ -73,7 +72,7 @@ public class JumpscareOverlay : MonoBehaviour
         if (viewController != null) viewController.enabled = false;
         if (cctv != null) cctv.enabled = false;
         if (panel != null) panel.enabled = false;
-        // Stop() 안 부름 → 영구 잠금 (게임오버 상태)
+        if (shutter != null) { shutter.ForceLock(); shutter.enabled = false; }   // ← 추가
     }
 
     void Stop()
@@ -82,6 +81,7 @@ public class JumpscareOverlay : MonoBehaviour
         if (image != null) image.enabled = false;
         if (viewController != null) viewController.enabled = true;
         if (cctv != null) cctv.enabled = true;
-         if (panel != null) panel.enabled = true;
+        if (panel != null) panel.enabled = true;
+        if (shutter != null) shutter.enabled = true;   // ← 추가 (Update가 버튼 복구)
     }
 }
