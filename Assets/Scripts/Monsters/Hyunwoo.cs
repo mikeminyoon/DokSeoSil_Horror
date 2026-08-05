@@ -5,7 +5,10 @@ using UnityEngine;
 // 입구 도달 후: 셔터 닫고 5초 유지 → 격퇴 / 못 막으면 침투(armed) → 시야 이탈/유예 시 스택+1.
 // 현우 모델에 붙인다.
 public class Hyunwoo : MonoBehaviour
-{
+{   
+    [Header("날짜 (GameManager가 세팅)")]
+    public int currentNight = 1;
+    
     [Header("환풍구 루트 노드")]
     public Transform[] nodes;   // [허공, 공부방2앉음, 환풍구매달림, 화장실, 관리실입구]
 
@@ -150,8 +153,7 @@ public class Hyunwoo : MonoBehaviour
     void UpdateAtEntrance()
     {
         bool shutterClosed = (shutter != null) && shutter.isShutterClosed;
-        Debug.Log($"[현우판정] 셔터닫힘:{shutterClosed} | 침투타이머:{infiltrationTimer:F1}/{infiltrationLimit}");
-        
+
         if (shutterClosed)
         {
             // 셔터 닫힘: 침투타이머 정지(그대로), 유지타이머 참

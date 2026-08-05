@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 9f461ba226c9bb440aed49e977f76b41
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 201220
+  packageName: Modern Clocks HQ
+  packageVersion: 1.3
+  assetPath: Assets/HQ_Modern_Clocks/install_RP_Versions.txt
+  uploadId: 749714

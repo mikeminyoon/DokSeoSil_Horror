@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8756d14222e219240ab6650e8c373871
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 201220
+  packageName: Modern Clocks HQ
+  packageVersion: 1.3
+  assetPath: Assets/HQ_Modern_Clocks/Scripts/Clock_Analogue.cs
+  uploadId: 749714
