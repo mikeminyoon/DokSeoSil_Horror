@@ -275,7 +275,9 @@ public class Hyunsoong : MonoBehaviour
         Debug.Log("☠☠☠ 현승 STRIKE2 - 퍼펫 즉사! 게임오버");
         if (jumpscare != null)
             jumpscare.PlayGameOver();
-        // TODO: GameManager.GameOver()
+        
+        if (GameManager.Instance != null)
+            GameManager.Instance.GameOver("현승퍼펫");
     }
 
     void DoActionRoll()

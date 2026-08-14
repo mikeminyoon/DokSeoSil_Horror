@@ -59,11 +59,10 @@ public class GameManager : MonoBehaviour
         // 12시 시작 → 1,2,3,4,5,6시
         gameHour = (12 + hoursPassed);
         if (gameHour >= 13) gameHour -= 12;   // 12 다음은 1시
-        // (12 → 1 → 2 ... → 6)
 
         // 임시 확인용 (1초마다 게임 시각 출력)
-        if (Mathf.FloorToInt(elapsed) != Mathf.FloorToInt(elapsed - Time.deltaTime))
-            Debug.Log($"게임 시각: {gameHour}시 {gameMinute}분 (경과 {elapsed:F0}s)");
+        //if (Mathf.FloorToInt(elapsed) != Mathf.FloorToInt(elapsed - Time.deltaTime))
+            //Debug.Log($"게임 시각: {gameHour}시 {gameMinute}분 (경과 {elapsed:F0}s)");
 
         // 6시 도달 → 생존
         if (elapsed >= duration)

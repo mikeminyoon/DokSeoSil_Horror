@@ -26,6 +26,9 @@ public class ShutterController : MonoBehaviour
 
     public bool isShutterClosed = false;   // 셔터 닫힘? (다른 스크립트가 읽음)
 
+    [Header("배터리 소모")]
+    public float shutterDrainRate = 2f;
+
     void Start()
     {
         if (viewController == null) viewController = GetComponent<ViewController>();
@@ -42,12 +45,18 @@ public class ShutterController : MonoBehaviour
         bool inVentZone = viewController.enabled && viewController.currentZone == ventZone;
         SetButtons(inVentZone);
 
+        // 셔터 닫혀있으면 배터리 소모
+        if (isShutterClosed && BatteryManager.Instance != null)
+            BatteryManager.Instance.DrainPerSecond(shutterDrainRate);
+        
         // 셔터를 목표 위치로 부드럽게 이동
         if (shutter != null)
         {
             Transform target = isShutterClosed ? closedPos : openPos;
             shutter.position = Vector3.Lerp(shutter.position, target.position, moveSpeed * Time.deltaTime);
         }
+
+        
     }
 
     // 셔터 토글 (버튼이 호출)
@@ -55,7 +64,7 @@ public class ShutterController : MonoBehaviour
     {
         isShutterClosed = !isShutterClosed;
         Debug.Log(isShutterClosed ? "셔터 닫힘" : "셔터 열림");
-        // TODO: 배터리 소모 (닫혀있는 동안) — 배터리 시스템 나중
+        
     }
 
     void SetButtons(bool on)
