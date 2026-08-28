@@ -164,11 +164,11 @@ public class Hyunsoong : MonoBehaviour
 
         nodes = allowed[Random.Range(0, allowed.Count)];
 
-        string routeName = nodes == routeR1 ? "R1"
-                         : nodes == routeR2 ? "R2"
-                         : nodes == routeR4 ? "R4(창고)"
-                         : "R1'(로비잠복)";
-        Debug.Log($"현승 루트 선택: {routeName} (밤 {currentNight})");
+        // string routeName = nodes == routeR1 ? "R1"
+        //                  : nodes == routeR2 ? "R2"
+        //                  : nodes == routeR4 ? "R4(창고)"
+        //                  : "R1'(로비잠복)";
+        // Debug.Log($"현승 루트 선택: {routeName} (밤 {currentNight})");
     }
 
     void MoveToNode(int index)

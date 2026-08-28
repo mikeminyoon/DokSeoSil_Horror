@@ -11,6 +11,7 @@ public class MonitorDisplay : MonoBehaviour
     [Header("참조")]
     public CCTVController cctv;
     public CanvasGroup buttonGroup;      // 방 전환 버튼 묶음 (CanvasGroup)
+    public Yeonho yeonho;
 
     [Header("방 영상들")]
     public Texture[] roomFeeds;
@@ -177,5 +178,11 @@ public class MonitorDisplay : MonoBehaviour
         }
         staticTex.SetPixels32(pixels);
         staticTex.Apply();
+    }
+
+    public void RingBellCurrentRoom()
+    {
+        if (yeonho != null)
+            yeonho.RingBell(currentRoom);
     }
 }

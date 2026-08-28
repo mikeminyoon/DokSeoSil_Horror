@@ -34,8 +34,8 @@ public class BatteryManager : MonoBehaviour
             Deplete();
         }
 
-        if (Mathf.FloorToInt(battery) != Mathf.FloorToInt(battery + naturalDrain * Time.deltaTime))
-            Debug.Log($"배터리: {battery:F0}%");
+        //if (Mathf.FloorToInt(battery) != Mathf.FloorToInt(battery + naturalDrain * Time.deltaTime))
+            //Debug.Log($"배터리: {battery:F0}%");
     }
 
     // 즉시 소모 (종 칠 때 등 한 번에)
