@@ -46,6 +46,7 @@ public class Yeonho : MonoBehaviour
     public MonitorDisplay monitor;
     public ScreenTransitionDetector transitionDetector;
     public JumpscareOverlay jumpscare;
+    public AudioSystem audioSystem;
 
     // 상태
     private enum State { Spawning, Moving, WindowFront, Peeking }
@@ -73,6 +74,7 @@ public class Yeonho : MonoBehaviour
         if (monitor == null) monitor = FindAnyObjectByType<MonitorDisplay>();
         if (transitionDetector == null) transitionDetector = FindAnyObjectByType<ScreenTransitionDetector>();
         if (jumpscare == null) jumpscare = FindAnyObjectByType<JumpscareOverlay>();
+        if (audioSystem == null) audioSystem = FindAnyObjectByType<AudioSystem>();
 
         if (transitionDetector != null)
             transitionDetector.OnScreenTransition += HandleScreenTransition;
@@ -228,6 +230,13 @@ public class Yeonho : MonoBehaviour
     // === 종 (버튼이 호출) ===
     public void RingBell(int room)
     {
+        // 오디오 고장 중이면 아예 못 침
+        if (audioSystem != null && audioSystem.IsAudioBroken())
+        {
+            Debug.Log("오디오 고장 중 - 종 사용 불가 (리셋 필요)");
+            return;
+        }
+
         // 쿨 중이면 무시
         if (bellCooldownTimer > 0f)
         {
@@ -238,6 +247,13 @@ public class Yeonho : MonoBehaviour
         // 쿨·배터리는 헛방이어도 소모
         bellCooldownTimer = bellCooldown;
         if (BatteryManager.Instance != null) BatteryManager.Instance.Drain(bellDrain);
+
+        // 밤당 종 횟수 소모 (한도 초과 시 오디오 고장 → 이번 타종은 밀어내기 효과 없음)
+        if (audioSystem != null && !audioSystem.TryUseBell())
+        {
+            Debug.Log("★★★ 종 과사용으로 오디오 고장 - 이번 종은 안 먹힘");
+            return;
+        }
 
         // 창문앞: 무시 없음, 강하게 후퇴 (반응 딜레이 후)
         if (state == State.WindowFront)

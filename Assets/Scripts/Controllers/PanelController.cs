@@ -10,6 +10,7 @@ public class PanelController : MonoBehaviour
     public Transform panelViewPoint;        // 카메라가 다가갈 목표점 (패널 앞)
     public CCTVController cctv;
     public AudioSystem audioSystem;
+    public CameraSystem cameraSystem;
 
     [Header("패널 구역")]
     public CanvasGroup panelButtons;        // 패널 UI CanvasGroup (패널 열릴 때만 활성화)
@@ -20,6 +21,9 @@ public class PanelController : MonoBehaviour
 
     [Header("전진 속도")]
     public float moveSpeed = 6f;
+
+    [Header("전체 리셋 (오디오+카메라 동시 — §12.3 '둘 8s')")]
+    public float resetAllDuration = 8f;
 
     public bool isPanelOpen = false;        // 다른 스크립트가 읽을 수 있게
     private Camera cam;
@@ -94,10 +98,15 @@ public class PanelController : MonoBehaviour
     // 패널 닫기 (Exit 버튼)
     public void ClosePanel()
     {
-        // 리셋 중이면 못 나감 (손 묶임)
+        // 리셋 중이면 못 나감 (손 묶임) — 오디오/카메라 어느 쪽이든
         if (audioSystem != null && audioSystem.IsResetting())
         {
-            Debug.Log("리셋 중 - 패널 못 나감");
+            Debug.Log("오디오 리셋 중 - 패널 못 나감");
+            return;
+        }
+        if (cameraSystem != null && cameraSystem.IsResetting())
+        {
+            Debug.Log("카메라 리셋 중 - 패널 못 나감");
             return;
         }
 
@@ -109,6 +118,13 @@ public class PanelController : MonoBehaviour
         viewController.SuppressEdgeUntilRelease();
 
         SetButtons(false);
+    }
+
+    // 전체 리셋 버튼이 호출 — 오디오+카메라 동시 시작(§12.3 "둘 8s", 고장 여부 무관 예방적 가능)
+    public void ResetAll()
+    {
+        if (audioSystem != null) audioSystem.StartReset(resetAllDuration);
+        if (cameraSystem != null) cameraSystem.StartReset(resetAllDuration);
     }
 
     // 점프스케어 등으로 강제 취소

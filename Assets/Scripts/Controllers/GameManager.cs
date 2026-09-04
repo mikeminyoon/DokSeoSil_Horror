@@ -18,6 +18,7 @@ public class GameManager : MonoBehaviour
     [Header("귀신 참조 (currentNight 전달)")]
     public Hyunsoong hyunsoong;
     public Hyunwoo hyunwoo;
+    public Yeonho yeonho;
 
     [Header("상태")]
     public bool isNightOver = false;
@@ -39,6 +40,7 @@ public class GameManager : MonoBehaviour
         // 귀신들한테 currentNight 전달
         if (hyunsoong != null) hyunsoong.currentNight = currentNight;
         //if (hyunwoo != null) hyunwoo.currentNight = currentNight;   // 현우도 (지금은 안 쓰지만 대비)
+        //if (yeonho != null) yeonho.currentNight = currentNight;     // 연호도 (개발 초반 - 밤 상관없이 자유 테스트 위해 주석. 종 횟수 밤별 밸런스 테스트할 때 풀 것)
 
         Debug.Log($"=== 밤 {currentNight} 시작 (길이 {duration}초) ===");
     }

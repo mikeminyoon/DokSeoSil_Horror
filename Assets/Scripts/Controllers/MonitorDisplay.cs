@@ -12,10 +12,14 @@ public class MonitorDisplay : MonoBehaviour
     public CCTVController cctv;
     public CanvasGroup buttonGroup;      // 방 전환 버튼 묶음 (CanvasGroup)
     public Yeonho yeonho;
+    public CameraSystem cameraSystem;    // 고장 시 완전 먹통(스태틱) 처리용
 
     [Header("방 영상들")]
     public Texture[] roomFeeds;
     public int currentRoom = 0;
+
+    [Header("창고 카메라 (CAM07 — 화면 안 보임, 소리만)")]
+    public int storageRoomIndex = 6;   // roomFeeds 기준 [6]=창고
 
     [Header("스태틱 설정")]
     public int staticSize = 128;
@@ -45,6 +49,13 @@ public class MonitorDisplay : MonoBehaviour
 
     void Update()
     {
+        // 카메라 시스템 고장 = 완전 먹통. 방/상태 무관하게 항상 스태틱만.
+        if (cameraSystem != null && cameraSystem.IsCameraBroken())
+        {
+            ShowStatic();
+            return;
+        }
+
         // === 1. 상태 결정 ===
         UpdateState();
 
@@ -56,7 +67,11 @@ public class MonitorDisplay : MonoBehaviour
                 ShowStatic();               // 둘 다 스태틱 표시
                 break;
             case State.Active:
-                ShowRoom();                 // 방 영상 표시
+                // 창고(CAM07)는 언제나 화면이 안 보임 — 소리만(Phase 8 사운드 연결 예정)
+                if (currentRoom == storageRoomIndex)
+                    ShowStatic();
+                else
+                    ShowRoom();
                 break;
         }
     }
