@@ -217,6 +217,8 @@ public class Yeonho : MonoBehaviour
     {
         if (state == State.Peeking)
             Kill();
+        else if (state == State.WindowFront)
+            EnterPeeking();   // 창문앞에서 화면 전환 = 조여짐. 이번엔 안 죽고 빼꼼으로 넘어감(다음 전환에 즉사)
     }
 
     void Kill()
