@@ -20,8 +20,7 @@ public class Yeonho : MonoBehaviour
     public float spawnDelayMax = 25f;
 
     [Header("엔진A")]
-    public int aiLevel = 1;
-    public int currentNight = 1;
+    public int aiLevel = 1;   // 날짜는 GameManager.Night에서 읽음 (자기 currentNight 필드 없음)
 
     [Header("행동 굴림 가중치")]
     public int weightForward = 60;
@@ -257,9 +256,20 @@ public class Yeonho : MonoBehaviour
             return;
         }
 
-        // 창문앞: 무시 없음, 강하게 후퇴 (반응 딜레이 후)
+        // 창문앞: 연호가 방금 떠나온 마지막 방(세로복도)에 울렸을 때만 먹힘. 다른 방은 헛방.
+        // 플레이어는 연호가 창문앞에 있는지 CCTV로 확인 못 함 → 감으로 치는 종(결과도 안 보임).
+        // 먹히면 무시 없음(기획서: 창문앞 무시 없음), 강하게 후퇴(반응 딜레이 후)
         if (state == State.WindowFront)
         {
+            int lastIdx = nodes.Length - 1;
+            int frontRoom = (lastIdx >= 0 && lastIdx < nodeRoomIndex.Length) ? nodeRoomIndex[lastIdx] : -1;
+
+            if (room != frontRoom)
+            {
+                Debug.Log($"종 헛방 (연호 창문앞 — 방 {frontRoom}에 쳐야 함, 친 방 {room})");
+                return;
+            }
+
             Debug.Log("★ 종! 연호 창문앞에서 반응 중...");
             state = State.Moving;
             int back = Mathf.Max(0, nodes.Length - windowFrontRetreat);
@@ -292,10 +302,11 @@ public class Yeonho : MonoBehaviour
         }
     }
 
+    // 비상 종 (EmergencyBell이 호출). 창문앞일 때만 효과 → 완전 후퇴(재등장 대기).
+    // 그 외(등장 전/이동 중/빼꼼)는 헛방 — false 반환. 비용은 EmergencyBell이 무조건 소모.
     public bool EmergencyPush()
     {
-        //빼곰상태인지 확인
-        if (state == State.Peeking) return false;
+        if (state != State.WindowFront) return false;
 
         //종 적용되면 스폰대기상태로
         Debug.Log("★★ 비상 종! 연호 완전 후퇴 (재등장 대기)");

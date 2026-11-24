@@ -6,19 +6,19 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;   // 다른 스크립트가 쉽게 접근
 
+    // ⭐ 밤 숫자는 여기 한 곳에만 있다. 다른 스크립트는 자기 필드를 두지 말고 GameManager.Night를 읽을 것.
+    // Instance는 Awake에서 세팅 → 모든 스크립트의 Start보다 먼저라 실행 순서 문제 없음.
+    // GameManager가 없는 테스트 씬이면 1일차로 취급.
+    public static int Night => (Instance != null) ? Instance.currentNight : 1;
+
     [Header("밤 설정")]
-    public int currentNight = 1;           // 지금 몇 밤 (수동, 나중에 저장 시스템으로)
+    public int currentNight = 1;           // 지금 몇 밤 (수동, 나중에 저장 시스템으로) — 테스트할 밤은 여기서만 바꿈
     public float nightDuration = 390f;     // 밤 길이 (6분 30초)
     public float firstNightDuration = 240f; // 1일차는 짧게 (~4분)
 
     [Header("게임 시간 (읽기용 — 시계가 참조)")]
     public int gameHour = 12;   // 현재 게임상 시 (12→1→...→6)
     public int gameMinute = 0;  // 현재 게임상 분
-
-    [Header("귀신 참조 (currentNight 전달)")]
-    public Hyunsoong hyunsoong;
-    public Hyunwoo hyunwoo;
-    public Yeonho yeonho;
 
     [Header("상태")]
     public bool isNightOver = false;
@@ -36,11 +36,6 @@ public class GameManager : MonoBehaviour
     {
         // 1일차만 짧게
         duration = (currentNight == 1) ? firstNightDuration : nightDuration;
-
-        // 귀신들한테 currentNight 전달
-        if (hyunsoong != null) hyunsoong.currentNight = currentNight;
-        //if (hyunwoo != null) hyunwoo.currentNight = currentNight;   // 현우도 (지금은 안 쓰지만 대비)
-        //if (yeonho != null) yeonho.currentNight = currentNight;     // 연호도 (개발 초반 - 밤 상관없이 자유 테스트 위해 주석. 종 횟수 밤별 밸런스 테스트할 때 풀 것)
 
         Debug.Log($"=== 밤 {currentNight} 시작 (길이 {duration}초) ===");
     }

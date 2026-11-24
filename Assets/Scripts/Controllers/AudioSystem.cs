@@ -5,18 +5,20 @@ using UnityEngine;
 public class AudioSystem : MonoBehaviour
 {
     [Header("참조")]
-    public Hyunsoong hyunsoong;
-    public Yeonho yeonho;                 // 밤당 종 횟수 한도 조회용 (currentNight)
+    public Hyunsoong hyunsoong;           // 방치 시 STRIKE2(퍼펫 즉사) 호출용
+    // 날짜는 GameManager.Night에서 읽음
+
     [Header("오디오 고장")]
     public bool isAudioBroken = false;
-    public float breakTimeLimit = 32f;    // 이 시간 안에 리셋 못 하면 STRIKE2 (다음 구현)
+    public float breakTimeLimit = 32f;    // 이 시간 안에 리셋 못 하면 STRIKE2 (원인 무관 — FNAF2 퍼펫 느낌, 의도됨)
+    public int noBreakUntilNight = 1;     // 이 밤까지는 오디오 고장 자체가 없음 (1일차 교육 — STRIKE1도 점프스케어만)
 
     [Header("리셋")]
     public float resetDuration = 5f;      // 리셋에 걸리는 시간
 
     [Header("종 사용 횟수 (밤당 제한 — §8.3 예방적 리셋)")]
     public int bellUses = 0;              // 이번 밤 소모한 종 횟수
-    public int[] bellLimitByNight = { 0, 0, 5, 4, 3, 2 };  // index = night (1일 미사용, 2~5일 5/4/3/2)
+    public int[] bellLimitByNight = { 0, 0, 5, 4, 3, 2 };  // index = 밤 숫자 그대로 ([0]은 안 쓰는 칸). 0 이하 = 무제한. 1일 무제한, 2~5일 5/4/3/2
 
     private float breakTimer = 0f;        // 고장 후 경과
     private float resetTimer = 0f;        // 리셋 진행
@@ -48,23 +50,37 @@ public class AudioSystem : MonoBehaviour
         }
     }
 
-    // 오디오 고장 발생 (현승 STRIKE1이 호출)
+    // 오디오 고장 발생 (현승 STRIKE1 / 종 과사용이 호출)
     public void BreakAudio()
     {
         if (isAudioBroken) return;
+
+        // 1일차: 고장 없음 → 방치 즉사(STRIKE2)도 자연히 없음
+        if (GameManager.Night <= noBreakUntilNight)
+        {
+            Debug.Log($"오디오 고장 무시 ({GameManager.Night}일차 — 고장 없는 밤)");
+            return;
+        }
+
         isAudioBroken = true;
         breakTimer = 0f;
         Debug.Log("오디오 고장! 리셋 필요");
     }
 
-    // 리셋 시작 (패널 버튼이 호출) — 고장 안 났어도 예방적으로 실행 가능.
-    // overrideDuration: 전체 리셋(§12.3 "둘 8s")처럼 다른 시간을 쓸 때만 넘김. 안 넘기면 개별 resetDuration.
-    public void StartReset(float overrideDuration = -1f)
+    // 개별 리셋 (패널 버튼 OnClick이 호출) — 고장 안 났어도 예방적으로 실행 가능.
+    // ⚠️ 버튼 OnClick은 매개변수 없는 함수만 찾으므로 여기엔 매개변수를 붙이지 말 것.
+    public void StartReset()
+    {
+        StartResetFor(resetDuration);
+    }
+
+    // 시간 지정 리셋 (전체 리셋이 호출 — §12.3 "둘 8s")
+    public void StartResetFor(float duration)
     {
         if (isResetting) return;
         isResetting = true;
         resetTimer = 0f;
-        activeResetDuration = (overrideDuration > 0f) ? overrideDuration : resetDuration;
+        activeResetDuration = duration;
         Debug.Log($"오디오 리셋 시작... ({activeResetDuration}초)");
     }
 
@@ -84,7 +100,10 @@ public class AudioSystem : MonoBehaviour
         if (isAudioBroken) return false;
 
         bellUses++;
-        if (bellUses > GetBellLimit())
+        int limit = GetBellLimit();
+        if (limit <= 0) return true;   // 0 이하 = 무제한 (1일차: 원작 FNAF3처럼 고장 없음)
+
+        if (bellUses > limit)
         {
             Debug.Log("★★★ 종 사용 횟수 초과! 오디오 고장 (리셋 필요)");
             BreakAudio();
@@ -95,8 +114,7 @@ public class AudioSystem : MonoBehaviour
 
     int GetBellLimit()
     {
-        int night = (yeonho != null) ? yeonho.currentNight : 1;
-        night = Mathf.Clamp(night, 0, bellLimitByNight.Length - 1);
+        int night = Mathf.Clamp(GameManager.Night, 0, bellLimitByNight.Length - 1);
         return bellLimitByNight[night];
     }
 

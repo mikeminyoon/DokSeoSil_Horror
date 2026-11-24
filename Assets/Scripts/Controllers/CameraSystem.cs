@@ -60,14 +60,20 @@ public class CameraSystem : MonoBehaviour
         Debug.Log("★★★ 카메라 시스템 고장! (CCTV 과사용) - 리셋 필요");
     }
 
-    // 리셋 시작 (패널 버튼이 호출) — 고장 안 났어도 예방적으로 실행 가능.
-    // overrideDuration: 전체 리셋(§12.3 "둘 8s")처럼 다른 시간을 쓸 때만 넘김. 안 넘기면 개별 resetDuration.
-    public void StartReset(float overrideDuration = -1f)
+    // 개별 리셋 (패널 버튼 OnClick이 호출) — 고장 안 났어도 예방적으로 실행 가능.
+    // ⚠️ 버튼 OnClick은 매개변수 없는 함수만 찾으므로 여기엔 매개변수를 붙이지 말 것.
+    public void StartReset()
+    {
+        StartResetFor(resetDuration);
+    }
+
+    // 시간 지정 리셋 (전체 리셋이 호출 — §12.3 "둘 8s")
+    public void StartResetFor(float duration)
     {
         if (isResetting) return;
         isResetting = true;
         resetTimer = 0f;
-        activeResetDuration = (overrideDuration > 0f) ? overrideDuration : resetDuration;
+        activeResetDuration = duration;
         Debug.Log($"카메라 리셋 시작... ({activeResetDuration}초)");
     }
 

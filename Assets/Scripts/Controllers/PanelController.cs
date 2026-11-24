@@ -123,8 +123,8 @@ public class PanelController : MonoBehaviour
     // 전체 리셋 버튼이 호출 — 오디오+카메라 동시 시작(§12.3 "둘 8s", 고장 여부 무관 예방적 가능)
     public void ResetAll()
     {
-        if (audioSystem != null) audioSystem.StartReset(resetAllDuration);
-        if (cameraSystem != null) cameraSystem.StartReset(resetAllDuration);
+        if (audioSystem != null) audioSystem.StartResetFor(resetAllDuration);
+        if (cameraSystem != null) cameraSystem.StartResetFor(resetAllDuration);
     }
 
     // 점프스케어 등으로 강제 취소

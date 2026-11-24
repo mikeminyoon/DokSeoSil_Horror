@@ -19,8 +19,7 @@ public class Hyunsoong : MonoBehaviour
     private bool isLurking = false;     // 잠복 중?
     private float lurkDuration = 0f;
 
-    [Header("날짜 (나중에 GameManager가 세팅)")]
-    public int currentNight = 1;   // 1밤=R1만 / 2밤~=R1·R2
+    // 날짜는 GameManager.Night에서 직접 읽음 (자기 필드 없음). 1밤=R1만 / 2밤~=R1·R2·R4 / 3밤~=+R1'
     private Transform[] nodes;
 
     [Header("창고 노드 (소리 판별용)")]
@@ -152,13 +151,14 @@ public class Hyunsoong : MonoBehaviour
     // 그날 허용된 루트 중 하나를 랜덤 선택
     void SelectRoute()
     {
+        int night = GameManager.Night;
         var allowed = new System.Collections.Generic.List<Transform[]>();
         allowed.Add(routeR1);                                  // R1은 항상
-        if (currentNight >= 2 && routeR2 != null && routeR2.Length > 0)
+        if (night >= 2 && routeR2 != null && routeR2.Length > 0)
             allowed.Add(routeR2);                              // 2밤부터 R2
-        if (currentNight >= 2 && routeR4 != null && routeR4.Length > 0)
+        if (night >= 2 && routeR4 != null && routeR4.Length > 0)
             allowed.Add(routeR4);                              // 2밤부터 R4
-        if (currentNight >= 3 && routeR1p != null && routeR1p.Length > 0)
+        if (night >= 3 && routeR1p != null && routeR1p.Length > 0)
             allowed.Add(routeR1p);      // ← 3밤부터 로비 잠복
         // TODO: 3밤~ R3(환풍구)
 
@@ -168,7 +168,7 @@ public class Hyunsoong : MonoBehaviour
         //                  : nodes == routeR2 ? "R2"
         //                  : nodes == routeR4 ? "R4(창고)"
         //                  : "R1'(로비잠복)";
-        // Debug.Log($"현승 루트 선택: {routeName} (밤 {currentNight})");
+        // Debug.Log($"현승 루트 선택: {routeName} (밤 {night})");
     }
 
     void MoveToNode(int index)

@@ -4,6 +4,9 @@
 > Claude Code가 **맥락 손실 없이 이어받기 위한** 완전 인수인계서다.
 > "이전 Claude를 그대로 옮긴다"는 목적으로 작성됨. 처음 읽고 이 프로젝트의
 > 설계 철학·완성 시스템·코드 구조·함정·남은 작업·협업 방식을 전부 파악할 것.
+>
+> **마지막 갱신: 2026-11-24** (Claude Code 세션 — 오디오/카메라 에러, 리셋 패널, 비상 종 재정의, 밤 숫자 단일화).
+> 이 세션의 설계 결정 원문은 **구현노트 §15**에 있다.
 
 ---
 
@@ -15,26 +18,27 @@
 - **개발 환경:** MacBook Air M2, VS Code
 - **작업 언어:** 반드시 **한국어**
 - **레포:** https://github.com/mikeminyoon/DokSeoSil_Horror.git (private, git-lfs, 세션 끝마다 commit/push)
-- **레퍼런스:** FNAF 1(문/전력), FNAF 3(스프링트랩=엔진A, 오디오 유인, 시스템 리셋), Sister Location(브레이커 룸)
+- **레퍼런스:** FNAF 1(문/전력), FNAF 2(퍼펫 — 오디오 방치 즉사 느낌), FNAF 3(스프링트랩=엔진A, 오디오 유인, 시스템 리셋, 카메라 에러), Sister Location(브레이커 룸)
 
 ### 핵심 개발 철학 (반드시 지킬 것)
 1. **메커니즘 먼저, 그래픽은 맨 나중(Phase 8).** 회색 박스로 로직부터 검증. 애니메이션·조명·사운드·저해상도 필터·맵 디테일은 전부 Phase 8.
 2. **설계 → 말로 알고리즘 확인 → 유저 이해 확인 → 그다음 코드.** 절대 코드부터 던지지 말 것.
 3. **코드는 한글 주석 + 작게 쪼개서.** 통파일 교체를 선호(부분 수정은 유저가 헷갈려함).
-4. **문서 우선.** 기획/귀신 행동 관련 제안은 **반드시 기획서·구현노트 먼저 확인 후** 말할 것. 추측으로 답하다 여러 번 틀렸고(창고런·준영 즉사 여부 등) 유저가 교정했다. 문서가 진실의 원천.
+4. **문서 우선.** 기획/귀신 행동 관련 제안은 **반드시 기획서·구현노트 먼저 확인 후** 말할 것. 추측으로 답하다 여러 번 틀렸고(창고런·준영 즉사 여부 등) 유저가 교정했다. 문서가 진실의 원천. **단 문서끼리, 문서와 코드가 어긋날 때가 있음**(예: 종 규칙 — 구현노트 §11 vs 코드). 어긋나면 추측하지 말고 유저에게 어느 쪽이 현행인지 물을 것.
 5. **모듈화.** 한 파일에 다 넣지 말고 기능별 분리.
 6. **최적화 고려.** (특히 Debug.Log 폭주 주의 — 아래 함정 참고)
 7. **많은 부분을 수정해야 하면 반드시 유저에게 먼저 물을 것.** 요청이 불명확하면 실행 말고 이해부터 확인.
+8. **한 일은 정확히 보고.** 커밋/푸시는 명령 결과를 확인한 뒤에만 "했다"고 말할 것(2026-11-24에 실행 안 한 커밋을 했다고 말한 사고 있었음).
 
 ---
 
 ## 1. 유저(준현)에 대해 — 협업 방식
 
-- **강력한 독자적 설계 직관.** 시스템의 빈틈을 스스로 잘 찾아냄: 타이머 충돌, 시야 회전 사각, 방심 찌르기, "빼꼼은 벗어날 수 없다", "창문앞부터가 대치다", CCTV ON/OFF 상충이 겹침의 진짜 축, 비상 종 아이디어 등 — 전부 유저가 먼저 지적. **단순 검증자가 아니라 대등한 협업자로 대하고, 비판적으로 함께 사고할 것.**
-- "간 줄 알았는데 사실 있었다" 류의 **심리전을 매우 중시.**
+- **강력한 독자적 설계 직관.** 시스템의 빈틈을 스스로 잘 찾아냄: 타이머 충돌, 시야 회전 사각, 방심 찌르기, "빼꼼은 벗어날 수 없다", "창문앞부터가 대치다", CCTV ON/OFF 상충이 겹침의 진짜 축, 비상 종 아이디어, "연호가 앞에 있는지 몰라야 짜릿하다" 등 — 전부 유저가 먼저 지적. **단순 검증자가 아니라 대등한 협업자로 대하고, 비판적으로 함께 사고할 것.**
+- "간 줄 알았는데 사실 있었다" 류의 **심리전·불확실성을 매우 중시.** 플레이어 친화적 장치(예: 연호 도착 시 CCTV 강제 다운)는 "너무 친절하다"며 거절함.
+- 직접 플레이해보고 수치를 조정함(예: 연호 창문앞 시간 6초 → 약 12초). 씬의 Inspector 값이 문서 값과 다르면 의도된 조정일 수 있으니 바로 되돌리지 말 것.
 - 짧고 집중된 세션을 선호. 논리적 milestone에서 끝내고 git commit.
-- **에디터 세팅(Inspector 값, 노드 배치, roomFeeds 순서 등)은 코드에 없어서 웹 Claude가 반복해서 되물었고 유저가 답답해했다.** → Claude Code의 최대 장점이 이 지점: 코드/씬 파일을 직접 읽으니 되묻기가 준다. 단, 순수 Inspector 값(각 노드 Transform의 실제 좌표, 배열에 뭘 드래그했는지)은 씬 파일 파싱으로만 알 수 있으니 필요하면 확인 요청.
-- 웹에서는 파일 업로드가 자주 **빈 문서로** 와서 코드를 텍스트로 붙여야 했다. Claude Code에선 이 문제 없음.
+- **에디터 세팅(Inspector 값, 노드 배치, roomFeeds 순서 등)은 코드에 없어서 웹 Claude가 반복해서 되물었고 유저가 답답해했다.** → Claude Code는 `Assets/Scenes/Main.unity`(YAML)를 직접 grep해서 확인할 것. 참조 필드가 비었는지(`{fileID: 0}` 또는 줄 자체가 없음), 버튼 OnClick이 뭘 부르는지(`m_MethodName`) 다 씬 파일에 있음.
 
 ---
 
@@ -45,18 +49,19 @@
 [0] 공부방1   [1] 공부방2   [2] 가로복도   [3] 화장실
 [4] 로비      [5] 세로복도   [6] 창고
 ```
-CCTV 7개(CAM01~07)가 이 방들에 대응.
+CCTV 7개(CAM01~07)가 이 방들에 대응. **CAM07(창고)은 항상 스태틱**(화면 X, 소리만 — 소리는 Phase 8).
 
 ### 시야 4구역 (ViewController, zoneAngles ≈ {-60, 0, 60, 180})
-- **왼쪽(zone 0):** 리셋 패널 (환기/오디오 리셋)
-- **가운데(zone 1):** 컴퓨터(CCTV + 종 버튼) / CCTV 내리면 정면 **창문**(육안 실루엣 확인)
+- **왼쪽(zone 0):** 리셋 패널 (오디오/카메라 리셋, 전체 리셋 — 환기는 나중)
+- **가운데(zone 1):** 컴퓨터(CCTV + 종 버튼) / CCTV 내리면 정면 **창문**(육안 실루엣 확인) + 창문 옆 벽 **비상 종**(World 버튼)
 - **오른쪽(zone 2):** 환풍구 + 셔터 + 불빛 버튼 (현우 대응)
-- **후면(zone 3):** 창고 통로 ("뒤돌아보기" 버튼, 정전 시에만 진입)
-- **한 번에 한 구역만.** 시야 회전·패널 조작·후면 전환 = **전부 화면 전환** → armed 귀신에게 공격 기회.
-- **구역별 미세추적(microYaw/microPitch) 값을 배열로 다르게** 줌: 왼12/가운데15/환풍구5/후면10. 환풍구를 낮춘 건 셔터 버튼 클릭 안정 위해. **가운데는 낮출 수 없음 — 현승 창문 응시 대응 때문**(중요 제약, 아래 비상벨 항목 참고).
+- **후면(zone 3):** 창고 통로 ("뒤돌아보기" 버튼, 정전 시에만 진입 — 미구현)
+- **한 번에 한 구역만.**
+- ⭐ **화면 전환의 정의 (ScreenTransitionDetector 코드 기준):** **CCTV 올림/내림 + 리셋 패널 열기/닫기**만 전환. **시야 회전은 전환 아님**(부드러운 연속). 환기 오류 등은 `ForceTransition()`으로 강제 전환. → 환풍구 보다가 고개 돌려 창문 보는 건 안전, 패널에서 나오는 건 위험.
+- **구역별 미세추적(microYaw/microPitch) 값을 배열로 다르게** 줌: 왼12/가운데15/환풍구5/후면10. 환풍구를 낮춘 건 셔터 버튼 클릭 안정 위해. **가운데는 낮출 수 없음 — 현승 창문 응시 대응 때문.** (비상 종 World 버튼 클릭은 UIRayCamera로 해결함)
 
 ### Script Execution Order
-ViewController 100 → CCTV 200 → Panel 300
+ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지만 `Instance`를 Awake에서 세팅하므로 다른 스크립트 Start에서 안전하게 읽힘)
 
 ---
 
@@ -69,9 +74,9 @@ ViewController 100 → CCTV 200 → Panel 300
 
 | 귀신 | 위치 | 대응 | 결과 | 등장 | 엔진 |
 |---|---|---|---|---|---|
-| **현승** | 창문 | 육안 응시 | 비즉사(오디오 고장)→방치 시 **즉사**(퍼펫) | 1일~ | B |
+| **현승** | 창문 | 육안 응시 | 비즉사(오디오 고장)→방치 시 **즉사**(퍼펫). 1일차는 고장 없음 | 1일~ | B |
 | **현우** | 환풍구 | 셔터+라이트 | 비즉사(스택)→3스택 **정전** | 2일~ | B |
-| **연호** | 창문(정면) | **종**(CCTV) | **즉사** | 2일 맛보기/3일 정식/5일 AI16 | **A** |
+| **연호** | 창문(정면) | **종**(CCTV) / 최후엔 비상 종 | **즉사** | 2일 맛보기/3일 정식/5일 AI16 | **A** |
 | **김욱** | 환풍구 CAM | 카메라에서 벗어나기 | 비즉사(환기 오류) | 3일~ | - |
 | **준영** | CAM(관리실 방치) | 카메라 켜기(김욱 반대) | 비즉사(환기 오류), 밤 1회 | 3일~ | - |
 | **윤진** | 창고 | 청각 회피(Ballora) | 즉사(창고런) | 3일~ | - |
@@ -79,7 +84,7 @@ ViewController 100 → CCTV 200 → Panel 300
 
 ### ⭐ 겹침의 진짜 축 = CCTV ON/OFF 상충 (위치가 아니라)
 - **켜야:** 연호 종, 준영 없애기(그 CAM 봐야)
-- **꺼야:** 김욱 안전(보면 위험), 현승 창문 육안 응시
+- **꺼야:** 김욱 안전(보면 위험), 현승 창문 육안 응시, (CCTV 과사용 = 카메라 에러 확률)
 - 이게 매 순간 "CCTV 켤까 말까" 판단 = 겹침의 핵심 저글링.
 - **창고런(윤진·윤석)은 정전 freeze라 다른 위협과 격리** → 동시 위협 실질 5마리.
 - **즉사는 연호 하나(5마리 중)** → 우선순위 단순(연호 최우선). "연호만 확실히 막으면 나머진 좀 당해도 생존."
@@ -93,13 +98,15 @@ ViewController 100 → CCTV 200 → Panel 300
 ## 4. 완성된 시스템 & 코드 (파일별)
 
 > 모든 코드는 씬의 해당 오브젝트에 부착. 아래는 각 스크립트의 역할·핵심 로직·주의점.
+> ⭐ **밤 숫자 규칙:** 밤 숫자는 `GameManager.currentNight` 한 곳에만 있다. 다른 스크립트는 **자기 currentNight 필드를 만들지 말고 `GameManager.Night`를 읽을 것.** 테스트할 밤은 GameManager Inspector에서만 바꿈.
 
 ### 4.1 현승 (Hyunsoong.cs) — COMPLETE, 엔진B
 - 루트 R1/R2/R4/R1'(로비 잠복) + **허공 등장 노드**(fixedNodeCount=3, fixedNodeWaits 배열 [허공10~30, 착석10~20, 기립3~7]). 노드0(허공)은 스태틱 X, index>0만.
+- 루트 해금은 `GameManager.Night`: 1밤 R1 / 2밤~ +R2·R4 / 3밤~ +R1'.
 - 엔진B(cycleTime마다 rand<aiLevel 전진) + 행동 굴림(85/10/5) + 창문 워크패스 + GazeBox.
-- **STRIKE1**(비즉사, 오디오 고장) → **STRIKE2**(즉사, 퍼펫). STRIKE2에서 `GameManager.GameOver("현승 퍼펫 즉사")` + `jumpscare.PlayGameOver()` 호출 (연결 완료).
-- HandleScreenTransition 구독 중. **§14 자동 타이머(팬텀 프레디식 자동 발동)는 아직 미반영** — 구현노트 §14 참고.
-- currentNight 필드 있음(GameManager가 Start에서 세팅).
+- **STRIKE1**(비즉사, 오디오 고장 — 1일차는 점프스케어만) → **STRIKE2**(즉사, 퍼펫 — AudioSystem이 방치 32초 후 호출). STRIKE2에서 `GameManager.GameOver("현승퍼펫")` + `jumpscare.PlayGameOver()`.
+- HandleScreenTransition 구독 중. **§14 자동 타이머(팬텀 프레디식 자동 발동)는 아직 미반영.**
+- 창고 노드 도착 시 "와장창" 로그 — 소리는 Phase 8.
 
 ### 4.2 현우 (Hyunwoo.cs) — COMPLETE 완전체, 엔진B + 판정 A + 모델/애니
 - 환풍구 루트 노드 [허공, 공부방2 앉음, 환풍구 매달림, 화장실, 관리실 입구]. 스태틱은 index 1·2·3에서만(화장실=사라지는 순간).
@@ -109,10 +116,11 @@ ViewController 100 → CCTV 200 → Panel 300
   - 셔터 열면 holdTimer 리셋 + 침투 재개. 침투 만료 → **BecomeArmed**.
   - armed: `armedRecognizeDelay`(1s) 후 시야가 ventZone(2) 벗어나면 즉시 당함 / `armedGrace`(6s) 초과 자동 당함 → GetHit(스택+1).
   - **격퇴와 armed가 똑같이 보임**(쿵쿵+빈 환풍구) = 심리전.
-- **stackCount** 현우 내부 카운터(별도 매니저 X). 3스택 → 정전 로그(TODO: 실제 정전/창고런).
+- **stackCount** 현우 내부 카운터. 지금은 **스택 숫자 + 빨간 잔상만** — 스택별 효과(1 조명깜빡 / 2 조명나감 / 3 정전) 미구현. 3스택 → 정전 로그만.
+- 2스택 효과는 원래 "CCTV 노이즈"였으나 카메라 에러와 겹쳐서 **"조명 나감"으로 변경됨**(구현노트 §12.2).
 - **Animator PoseNode(Integer)**: 1=Sit, 2=Hanging, 4=InVent(크롤링 변형). AnyState 전환, MoveToNode에서 `SetInteger("PoseNode", index)`.
-- 모델: Meshy AI 생성 → 텍스처(URP/Lit, Base Map) → Mixamo 크롤링 포즈 변형(InVent). 캡슐 제거, 모델에 스크립트 직접 부착. **로직/실루엣 통합**(모델이 노드 순간이동하며 환풍구 위치에 있으면 그게 실루엣).
-- 참조: monitor, shutter(isShutterClosed 읽기), viewController(currentZone), jumpscare, animator, currentNight.
+- 모델: Meshy AI 생성 → 텍스처(URP/Lit, Base Map) → Mixamo 크롤링 포즈 변형(InVent). 캡슐 제거, 모델에 스크립트 직접 부착. **로직/실루엣 통합**.
+- 참조: monitor, shutter(isShutterClosed 읽기), viewController(currentZone), jumpscare, animator.
 
 ### 4.3 셔터 (ShutterController.cs) — COMPLETE
 - 오른쪽 구역(ventZone=2) UI 버튼 토글(closedPos/openPos Lerp, `isShutterClosed` public).
@@ -120,38 +128,46 @@ ViewController 100 → CCTV 200 → Panel 300
 - **ForceLock()**: 점프스케어 시 버튼 숨김 + 라이트 끔.
 - **shutterDrainRate**: 닫힌 동안 `BatteryManager.DrainPerSecond` (기본 2는 높음 → 1 권장).
 
-### 4.4 카메라 3스크립트 — 근본 해결 완료
-- **CCTVController.cs**: FNAF식 토글(마우스 하단 재진입으로 on/off). 가운데 구역(allowedZone=1)에서만 켜짐. `isCameraDown` public. **"현재 방" 개념 없음** — 위치/회전만 관리. `cctvViewPoint`로 Lerp 전진, 복귀는 **homeLocalPos**(Start에서 1회 고정, 어중간한 위치 저장 버그 제거). ForceCancel/CancelReturn 상호 처리. posDist<0.02/rotDist<0.5 스냅.
-- **PanelController.cs**: 동일하게 homeLocalPos 방식.
+### 4.4 카메라·패널·전환 스크립트
+- **CCTVController.cs**: FNAF식 토글(마우스 하단 재진입으로 on/off). 가운데 구역(allowedZone=1)에서만 켜짐. `isCameraDown` public. **"현재 방" 개념 없음** — 위치/회전만 관리. 복귀는 **homeLocalPos**(Start에서 1회 고정). ForceCancel/CancelReturn 상호 처리.
+- **PanelController.cs**: 동일하게 homeLocalPos 방식. 왼쪽 구역 가면 자동으로 패널 열림.
+  - `ClosePanel()`(Exit 버튼): **오디오든 카메라든 리셋 중이면 못 나감**(손 묶임).
+  - `ResetAll()`(전체 리셋 버튼): 오디오+카메라 동시, `resetAllDuration` 8초.
+  - 참조: audioSystem, cameraSystem (**씬에서 연결 안 하면 null이라 잠금이 조용히 안 걸림** — 실제로 겪음).
 - **ViewController.cs**: 4구역, 구역별 microYaw/microPitch 배열화, SuppressEdgeUntilRelease. `currentZone` public.
+- **ScreenTransitionDetector.cs**: CCTV 올림/내림 + 패널 열기/닫기 → `OnScreenTransition` 이벤트. `ForceTransition()`(환기 오류용). 시야 회전은 전환 아님.
 
 ### 4.5 MonitorDisplay.cs — COMPLETE (현재 방 관리 = 여기)
 - 상태 enum: Off / Switching / Active. **currentRoom**(지금 보는 방 인덱스, roomFeeds 기준).
 - `SwitchRoom(idx)`(버튼 호출), `GhostMoveStatic()`(귀신 이동 시 스태틱), buttonGroup(CanvasGroup, 방 전환 버튼 묶음).
-- **종 버튼 연결용**: `public Yeonho yeonho;` + `RingBellCurrentRoom(){ yeonho.RingBell(currentRoom); }` 추가 필요/추가됨. 종 버튼 OnClick → 이 함수.
+- `RingBellCurrentRoom()` → `yeonho.RingBell(currentRoom)`. 종 버튼 OnClick → 이 함수.
+- **CAM07(`storageRoomIndex`=6)은 Active여도 항상 스태틱.**
+- **카메라 고장(`cameraSystem.IsCameraBroken()`) 시 방·상태 무관 전부 스태틱.**
 
 ### 4.6 JumpscareOverlay.cs — COMPLETE
 - Play()(빨강 STRIKE1, 1.5s 후 Stop) / PlayGameOver()(보라, 영구 잠금).
-- 잠금 방식 = 각 컨트롤러 `enabled=false` 직접(방식 A). **cctv/panel/viewController/shutter 등록 완료**(shutter는 ForceLock + enabled=false, Stop에서 복구).
+- 잠금 방식 = 각 컨트롤러 `enabled=false` 직접(방식 A). **cctv/panel/viewController/shutter 등록 완료**.
 
 ### 4.7 GameManager.cs — COMPLETE 기초
-- static Instance. **currentNight(수동 — ⭐나중 저장 시스템/자동화 PENDING)**. nightDuration 390s / firstNightDuration 240s.
-- gameHour/gameMinute 계산(12시→6시). 현승·현우에 currentNight 전달(Start). 6시 → NightClear. GameOver(cause)(현승 STRIKE2 연결됨, isGameOver 시 Update 정지 = 타이머·시계 멈춤).
-- **주의:** 게임오버 시 귀신들은 안 멈춤(점프스케어 오버레이가 화면 덮어서 무관, 씬 전환 예정). 나중에 게임오버 스크린 만들 때 일괄 정지 처리.
+- static Instance(Awake). **`public static int Night`** — 모든 스크립트가 밤 숫자를 여기서 읽음(GameManager 없으면 1).
+- `currentNight`(수동 — ⭐나중 저장 시스템/자동화 PENDING). nightDuration 390s / firstNightDuration 240s.
+- gameHour/gameMinute 계산(12시→6시). 6시 → NightClear. GameOver(cause)(isGameOver 시 Update 정지 = 타이머·시계 멈춤).
+- 예전엔 GameManager가 귀신 필드에 밤을 넣어주는 방식이었으나 Start 실행 순서 문제로 **제거**(구현노트 §15.8). 귀신 참조 필드도 없음.
+- **주의:** 게임오버 시 귀신들은 안 멈춤(점프스케어 오버레이가 화면 덮어서 무관, 씬 전환 예정).
 
 ### 4.8 Clock_Digital.cs — COMPLETE
-- 에셋 시계 개조. 현실시간(System.DateTime) → **GameManager.gameHour/gameMinute**. URP 전용(_BaseMap/_EmissionMap만). materials[1~5] 텍스처 오프셋으로 숫자, [5] 콜론 깜빡. 3D 오브젝트 시계(월드), 분도 표시.
+- 에셋 시계 개조. 현실시간 → **GameManager.gameHour/gameMinute**. URP 전용(_BaseMap/_EmissionMap만). 3D 오브젝트 시계(월드), 분도 표시.
 
 ### 4.9 BatteryManager.cs — COMPLETE
-- static Instance. battery 100/maxBattery. **naturalDrain(자연 감소 — 0.6쯤은 너무 빠름, 0.1로 낮춤)**. Drain(즉시)/DrainPerSecond(지속). Deplete → `GameManager.GameOver("배터리 방전")`. GetRatio().
-- **배터리 방전(전력0) = 즉사**(암전→연호 강제 점프스케어, FNAF1식). ≠ 현우 배선 고장(창고런).
-- 장치별 소모율은 **각 장치가 배터리에 요청**(셔터는 shutterDrainRate로 DrainPerSecond, 종은 bellDrain으로 Drain).
+- static Instance. battery 100/maxBattery. **naturalDrain**(0.6은 너무 빠름, 0.1). Drain(즉시)/DrainPerSecond(지속). Deplete → `GameManager.GameOver("배터리 방전")`.
+- **배터리 방전 = 즉사**(기획: 암전→연호 강제 점프스케어 — **연출 연결은 TODO**). ≠ 현우 배선 고장(창고런).
+- 장치별 소모율은 **각 장치가 배터리에 요청**(셔터 shutterDrainRate, 종 bellDrain, 비상 종 batteryCost).
 
 ### 4.10 BatteryDisplay.cs — COMPLETE
-- **World Space Canvas** 텍스트, 모니터 오브젝트에 부착. `cctv.isCameraDown`일 때만 표시("BATTERY N%").
+- **World Space Canvas** 텍스트, 모니터에 부착. `cctv.isCameraDown`일 때만 표시.
 - ⭐ **UI 철학 (유저가 스스로 도출):**
-  - **World Space** = 3D 오브젝트에 붙은 정보(배터리, CCTV 방 전환 버튼). CCTV 화면은 카메라 고정이라 미세추적 없음 → 클릭 안정.
-  - **Screen Overlay** = 플레이어 조작(셔터·라이트·패널 버튼). 시야 구역이라 미세추적 있어 도망 위험 → 화면 고정 필요.
+  - **World Space** = 3D 오브젝트에 붙은 정보/장치(배터리, CCTV 방 전환 버튼, 비상 종).
+  - **Screen Overlay** = 플레이어 조작(셔터·라이트·패널 버튼).
 
 ### 4.11 ⭐ 연호 (Yeonho.cs) — 엔진A, 메인 빌런 (이 프로젝트의 핵심)
 
@@ -163,81 +179,105 @@ move_counter > 임계값 → 행동 굴림
   굴림: 1=멈춤(total_turns+1) / 2=후퇴 / 3=전진 / 4=급습(원본 vent, 우리는 흉포 전용)
   이동 성공(2,3) → total_turns=0, move_counter 리셋
 ```
-- **핵심:** Random(1~15)이 매초 임계값에 들어가 **예측 불가**(현우 엔진B는 규칙적 확률 = 예측 가능과 대비). total_turns = 멈출수록 다음 행동 가속(방황 방지 보정).
-- **거점 = 공부방2**(공부방1 아님). 환풍구 못 씀(몸집). 루트 L1/L2/L3 전부 창문 수렴. **다양성은 루트보다 행동 엔진**(현승은 루트 다양성). 1단계는 L1만: 노드 = [공부방2, 가로복도, 로비, 세로복도]. **nodeRoomIndex = [1,2,4,5]**.
-- **등장:** 시간 로직(spawnDelay 10~25)으로 model SetActive 껐다 켜기. 엔진A와 **완전 분리**(허공을 노드에 안 섞음 — 유저가 단순화 요청). 허공→바로 서있기(앉음 없음, 메인 빌런).
-- **행동 가중치:** weightForward 60 / Retreat 20 / Stay 20. 균등 1:1:1은 방황만 함(원작은 오디오 유인이 후퇴 담당). 종 만든 지금은 전진 가중이 맞음.
+- **핵심:** Random(1~15)이 매초 임계값에 들어가 **예측 불가**. total_turns = 멈출수록 다음 행동 가속.
+- **거점 = 공부방2**. 환풍구 못 씀(몸집). 1단계는 L1만: 노드 = [공부방2, 가로복도, 로비, 세로복도]. **nodeRoomIndex = [1,2,4,5]**.
+- **등장:** 시간 로직(spawnDelay 10~25)으로 model SetActive 껐다 켜기. 엔진A와 완전 분리.
+- **행동 가중치:** weightForward 60 / Retreat 20 / Stay 20.
 
-**대치 3단계 (상태 enum: Spawning → Moving → WindowFront → Peeking):**
-- Moving(엔진A 방황, 복도까지) → 복도 끝 전진 → **WindowFront**(창문앞, 대치 시작, 랜덤 후퇴 없음) → **Peeking**(빼꼼).
-- **원작 확인:** 오피스 근처 = attack stage, 랜덤 후퇴 불가(오디오로만), 창문앞부터 대치, 빼꼼에서 화면 전환 시 공격.
-- **우리 각색(원작보다 명확하게):** 원작은 굴림이 숨겨져 헷갈림. 우리는 **창문앞→빼꼼을 시간(windowFrontTime 6s)으로 눈에 보이게 조임.**
-- **빼꼼 = 벗어날 수 없는 최종 상태**(유저 통찰). 종 못 침(CCTV 켜는 게 화면 전환=죽음). `ScreenTransitionDetector.OnScreenTransition` 구독 → 화면 전환 시 Kill()→즉사(게임오버). 가만있으면 당장 안 죽지만 **환기 오류(준영)/팬텀(현승)이 화면 전환을 강제** → 그 틈에 즉사 = 기획서 캐스케이드("환기 오류=enabler, 직접 살해는 연호·현승"). **화면 전환 시스템이 여기서 빛을 봄.**
+**대치 단계 (상태 enum: Spawning → Moving → WindowFront → Peeking):**
+- Moving(엔진A 방황) → 세로복도 끝에서 전진 → **WindowFront**(창문앞, 랜덤 후퇴 없음) → **Peeking**(빼꼼).
+- **WindowFront → Peeking 조건 두 가지:** ① 대기 시간(`windowFrontTime`, 씬 값 **약 12초** — 유저가 6초는 너무 짧다고 늘림) 경과 ② **창문앞에서 화면 전환**(즉사 아님, 빼꼼으로 넘어감).
+- **즉사는 빼꼼에서만:** 빼꼼에서 화면 전환 → Kill(). 가만있으면 당장 안 죽지만 환기 오류/현승이 화면 전환을 강제 → 그 틈에 즉사(기획서 캐스케이드).
+- **연호가 창문앞에 와도 CCTV 강제 다운 없음** — "앞에 있는지 몰라야 짜릿하다"(유저).
 
-**종 시스템 (RingBell) — COMPLETE:**
+**일반 종 (RingBell) — COMPLETE:**
 - `RingBell(room)`: room = MonitorDisplay.currentRoom.
-  - 쿨(bellCooldown 5.4s) 중 무시. 쿨·배터리(bellDrain 8, Drain)는 **헛방이어도 소모.**
-  - **WindowFront**: 무시 없음, 강하게 후퇴(windowFrontRetreat 2칸) — 단, **현재는 아무 방에서나 발동**(창문앞 구멍 → 비상 종으로 해결, 아래).
-  - **Moving**: `nodeRoomIndex[currentNode] == room`이면 **무시 1/7**(ignoreChance 7, `Random.Range(0,7)==0`이면 무시) 굴림 후 후퇴, 아니면 헛방.
-- **종 반응 딜레이:** "치자마자 사라지면 텐션 없다"(유저) → 종소리 + 랜덤 텀 후 후퇴. `bellSoundDuration`(1.0, 나중 실제 사운드 길이) + `bellReactMin`(0.2)/`bellReactMax`(0.6). ScheduleRetreat(target) → retreatTimer 세팅, DoRetreat()에서 실제 MoveToNode. **UpdateMoving·UpdateWindowFront 맨 위 `if(retreatTimer>0f)return`**(반응 중 엔진 멈칫, 위치 튐 방지).
-- **⚠️ 미해결(다음 작업):** 종으로 후퇴 직후 엔진A가 바로 재전진하는 경우 있음. **DoRetreat에서 moveCounter=0, secondTimer=0 리셋 필요**(유저와 합의, 코드 반영 확인할 것).
+  - 오디오 고장 중이면 못 침. 쿨(bellCooldown 5.4s) 중 무시. 쿨·배터리(bellDrain 8)는 **헛방이어도 소모.**
+  - `AudioSystem.TryUseBell()`로 밤당 횟수 소모 — 초과면 오디오 고장 + 이번 종은 안 먹힘.
+  - **Moving:** CCTV로 **연호가 지금 있는 방**을 보며 쳐야 함(`nodeRoomIndex[currentNode] == room`). 무시 1/7. 다른 방 = 헛방.
+  - **WindowFront:** **세로복도(마지막 노드의 방)**에 친 종만 먹힘 — 무시 없음, 2칸 후퇴. 다른 방 = 헛방. 플레이어는 연호가 창문앞인지 CCTV로 못 보니 **감으로 치는 종**.
+  - **Peeking:** 효과 없음.
+- ⚠️ 구현노트 §11의 "인접(뒤쪽) 방" 규칙은 **옛 규칙**(웹에서 바뀜, 문서 미반영이었음). 현행은 위와 같음 — §11 상단에 주석 달아둠.
+- **종 반응 딜레이:** 종소리(`bellSoundDuration` 1.0) + 랜덤 텀(0.2~0.6) 후 후퇴. 반응 중 엔진 멈칫. DoRetreat에서 moveCounter/secondTimer 리셋(재전진 방지 — 완료).
 
-**비상 종 (EmergencyBell.cs) — COMPLETE:**
-- 창문앞 대응 구멍 해결책(유저 아이디어). 별도 "경비실 광역 비상벨."
-- 하루 4번(usesPerNight) + 쿨 15s(길게) + 배터리 왕창(batteryCost 20).
-- `PressEmergencyBell()`: 횟수 소진 시 오디오 오류(TODO 연결), 쿨 중 거부, 발동 시 `yeonho.EmergencyPush()`.
-- `Yeonho.EmergencyPush()`: **빼꼼이면 무효**(이미 늦음, false 반환). 그 외 → **스폰 대기로 완전 리셋**(model SetActive false, state=Spawning, spawnWait 재설정). 경로 중에도 사용 가능(광역).
-- **⚠️ UI 미완:** 현재 Overlay 버튼(가운데 볼 때만 표시)으로 되어 있으나, **유저가 World로 바꾸길 원함**(가운데 시야는 잘 움직여서, 창문 옆 벽에 물리적으로 붙은 비상벨이 자연스러움). **단 가운데 구역은 미세추적을 낮출 수 없음**(현승 창문 응시 대응 때문) → World 버튼 클릭 안정성을 미세추적 하향 외 다른 방법으로 확보해야 함(콜라이더 넉넉히 등). **이게 다음 작업.**
+**비상 종 (EmergencyBell.cs) — COMPLETE (2026-11-24 재정의, 구현노트 §15.6):**
+- **역할:** 일반 종으로 못 막았을 때 쓰는 **진짜 최후 수단.** 창문 옆 벽 World 버튼(가운데 구역 볼 때만, UIRayCamera로 클릭 판정).
+- **효과는 연호가 창문앞일 때만** → `Yeonho.EmergencyPush()` 완전 후퇴(Spawning으로, 재등장 대기). 등장 전·이동 중·빼꼼 = 헛방(false).
+- 누르면 효과와 무관하게 **횟수·쿨·배터리 소모.**
+- **하루 2번(usesPerNight), 쿨 60초.** (코드 기본값. 씬 Inspector에 옛 값 4/15가 남아 있을 수 있음 — 확인할 것)
+- **오디오 시스템과 별개:** 오디오 고장 중에도 작동, 소진해도 오디오 고장 안 남(그냥 안 눌림), 리셋으로 안 채워짐.
+
+### 4.12 AudioSystem.cs — COMPLETE (오디오 고장 + 리셋 + 종 횟수)
+- **고장 원인:** 현승 STRIKE1, 일반 종 밤당 횟수 초과. (비상 종은 무관)
+- **1일차는 고장 자체가 없음**(`noBreakUntilNight`=1) → 1일차 STRIKE1은 점프스케어만, STRIKE2 불가.
+- **방치 32초(`breakTimeLimit`) → 현승 STRIKE2 퍼펫 즉사.** 원인 무관(종 과사용 고장도). 의도됨 — FNAF2 퍼펫 느낌.
+- **종 밤당 한도 `bellLimitByNight` = {0, 0, 5, 4, 3, 2}:** 인덱스 = 밤 숫자 그대로([0]은 안 쓰는 칸). **0 이하 = 무제한** → 1일 무제한 / 2일5 / 3일4 / 4일3 / 5일2. Inspector에선 Element 0부터 보여서 헷갈림 주의.
+- **리셋:** `StartReset()`(버튼용, 5초) / `StartResetFor(초)`(전체 리셋용). **고장 없어도 예방적으로 가능**, 완료 시 `bellUses = 0`(예방적 리셋 전략, 구현노트 §8.3).
+- 고장 알림이 아직 없음(로그뿐) → TODO(사이렌 검토).
+
+### 4.13 CameraSystem.cs — COMPLETE (카메라 에러, 구현노트 §12·§15.2)
+- CCTV 켜져 있는 동안만 **`rollInterval` 3.5초마다 `breakChance` 3%** 굴림 → 고장 시 CCTV 완전 스태틱. 끄면 주기 누적 초기화.
+- 고장 중에도 종은 사용 가능(원작대로).
+- 리셋: AudioSystem과 같은 구조(`StartReset()` / `StartResetFor(초)`, 예방적 가능).
+- 참조: cctv. MonitorDisplay·PanelController가 cameraSystem을 참조함.
 
 ---
 
 ## 5. ⚠️ 함정 / 하지 말 것 (실제로 겪은 것들)
 
-- **Debug.Log 폭주 = 렉.** 귀신 셋이 매 이동/멈춤마다 로그 찍으면 확 느려짐. 개발용 이동 로그는 정리할 것. ★ 붙은 상태 전환 로그만 남기고 매 틱 로그는 빼기.
-- **카메라 복귀 버그(해결됨):** "어중간한 위치를 home으로 저장"하면 카메라가 이상한 데로 복귀. → homeLocalPos를 Start에서 1회 고정, 저장 로직 삭제. 재발하면 이 원인 의심.
-- **World Space Canvas 스케일:** 처음 만들면 씬에 거대하게 나옴. Scale 0.001부터 줄이며 오브젝트에 맞춤. 자식으로 넣으면 따라다녀 편함.
-- **URP 셰이더:** 외부 모델이 분홍/하양이면 Built-in/Standard 셰이더라서. URP/Lit로 바꾸고 Base Map 연결.
-- **엔진A 5개 임계값은 문서 오해였음.** 원본은 임계값 하나 + Random(1~15). 5개로 만들지 말 것.
-- **테스트값 되돌리기:** 세션마다 aiLevel↑, naturalDrain↑, spawnDelay↓ 등으로 테스트함. 커밋 전 원래값 복구.
+- **버튼 OnClick용 함수에 매개변수(기본값 포함)를 붙이지 말 것.** `StartReset()`을 `StartReset(float x = -1f)`로 바꿨더니 Unity 버튼이 함수를 못 찾아 아무 반응이 없었음(C# 기본값 매개변수는 Unity엔 그냥 "float 받는 함수"). 시간 지정이 필요하면 `StartResetFor(float)`처럼 **별도 함수**로.
+- **새 참조 필드를 추가하면 씬에서 연결해야 함.** 안 하면 null이라 `if (x != null && ...)` 가드가 조용히 통과 → 기능이 그냥 안 되는 것처럼 보임. 씬 YAML에서 필드 줄이 있는지 확인.
+- **씬에 저장된 Inspector 값이 코드 기본값보다 우선.** 코드 기본값을 바꿔도 이미 씬에 있는 컴포넌트엔 반영 안 됨 → 유저에게 Inspector 수정 요청하거나 씬 값 확인.
+- **밤 숫자 필드를 스크립트마다 만들지 말 것.** `GameManager.Night`만 읽기(4번 머리말 참고).
+- **Debug.Log 폭주 = 렉.** 매 틱 로그 빼고 ★ 상태 전환 로그만.
+- **카메라 복귀 버그(해결됨):** 어중간한 위치를 home으로 저장하면 이상한 데로 복귀. → homeLocalPos를 Start에서 1회 고정.
+- **World Space Canvas 스케일:** 처음 만들면 거대함. Scale 0.001부터.
+- **World UI 클릭 안 될 때:** GraphicRaycaster IgnoreReversedGraphics, 전체화면 RawImage의 Raycast Target, 저해상도 RT(4:3)와 화면(16:9) 종횡비 불일치 — UIRayCamera로 해결함(커밋 9f84e4e).
+- **URP 셰이더:** 외부 모델이 분홍/하양이면 URP/Lit로 바꾸고 Base Map 연결.
+- **엔진A 5개 임계값은 문서 오해였음.** 원본은 임계값 하나 + Random(1~15).
+- **테스트값 되돌리기:** aiLevel↑, naturalDrain↑, spawnDelay↓, bellLimitByNight 등으로 테스트함. 커밋 전 원래값 복구. 단 유저가 플레이해보고 의도적으로 바꾼 값(예: windowFrontTime 12초)은 되돌리지 말 것 — 애매하면 물어보기.
+- **`.gitignore`:** `.DS_Store` 무시 추가함. `.claude/`(로컬 설정)는 커밋 안 함.
 
 ---
 
 ## 6. 남은 작업 (우선순위 순)
 
-### 즉시 (연호 마무리)
-1. **종 후퇴 재전진 방지** — DoRetreat에 moveCounter/secondTimer 리셋(합의됨, 반영 확인).
-2. **비상 종 World UI 전환** — 창문 옆 World Space Canvas 버튼. 가운데 미세추적 못 낮추는 제약 하에 클릭 안정 확보.
-3. **연호 4단계** — 창문앞 armed도 화면 전환에 반응시킬지 결정(현재 빼꼼만).
-4. **연호 5단계 흉포 토글** — 현승·김욱·준영에게 당하거나/정전/4~5시/관리실 10초+ 방치 → move_counter 2배 + 급습(굴림4). 매 15초 rand(0~4)<AI 자동. **다른 귀신들 연동 필요라 그들 구현 후.**
+### 바로 할 수 있는 것
+1. **배터리 방전 → 연호 점프스케어** — 지금은 GameOver만. 기획: 암전 → 연호 강림(FNAF1식). BatteryManager TODO.
+2. **현승 §14 자동 발동** — armed → 짧은 뜸(1~2s) → STRIKE1 자동(화면 전환 무관). 현승의 ScreenTransitionDetector 구독 제거. 설계 확정됨(구현노트 §14).
+3. **고장 알림 설계 (오디오/카메라)** — 지금 로그뿐이라 플레이어가 고장을 모름(오디오는 32초 안에 못 고치면 죽는데!). 유저 아이디어: **FNAF3처럼 오디오 고장 시 경비실에 사이렌/경고.** 사운드+시각 경고 방식 설계 필요. 최소한 패널 임시 상태 표시("AUDIO: OK/ERROR/RESETTING")도 후보.
+
+### 밸런스
+4. **밤 곡선 잡기** (유저가 시작 신호 줄 것) — 연호 aiLevel(2일1→5일16), windowFrontTime(약 12s 확인), 종 한도, 비상 종(2회/60s), 현승 fixedNodeWaits, 카메라 에러 확률 등.
+
+### 귀신 마무리
+5. **현우 스택별 효과** — 1 조명깜빡+시야흐림 / 2 조명 나감(불빛 버튼 확인 방해) / 3 정전.
+6. **현승 R3(환풍구)**, **STRIKE1 캐스케이드**(행동상세 §1.4: STRIKE1 시 ~10초 CCTV/패널 잠금 + 연호 빠른 전진).
+7. **연호 5단계 흉포 토글** — 현승·김욱·준영에게 당함/정전/4~5시/관리실 10초+ 방치 → move_counter 2배 + 급습(굴림4). 매 15초 rand(0~4)<AI 자동. **다른 귀신 구현 후.**
 
 ### 시스템 (등뼈)
-5. **오디오 고장 시스템** — 일반 종 횟수 초과 + 비상 종 소진 + 현승 피격 통합 "오디오 다운" → 리셋 필요(구현노트 §8.3, 예방적 리셋 = 종 횟수 초기화). 비상 종의 TODO 연결.
-6. **정전 / 창고런** — 현우 3스택 → 배선 고장(≠배터리 방전) → 정전 → 창고런 5박자([결정]→[창고 기어가기 윤진]→[전기실 브레이커 윤석]→[탈출]→[복귀]). freeze 3단계. 5시 이후 창고런 안 생김·윤진 퇴장.
-7. **카메라 에러** — CCTV 과사용 처벌(구현노트 §12).
-8. **환기 시스템** — 셔터 장시간 폐쇄 → 환기 오류(유저 추가 아이디어). 김욱과 엮임(환기 공통).
+8. **정전 / 창고런** — 현우 3스택 → 배선 고장 → 창고런 5박자([결정]→[창고 기어가기 윤진]→[전기실 브레이커 윤석]→[탈출]→[복귀]). freeze 3단계. 5시 이후 창고런 없음.
+9. **환기 에러** — 김욱/준영 공격 시 ON → 주기적 강제 화면 전환. 리셋 패널 3종의 마지막(PanelController 잠금·ResetAll에 추가). 셔터 장시간 폐쇄 → 환기 오류(유저 아이디어)도 검토.
 
-### 남은 귀신 (5마리)
-9. **윤진**(창고/Ballora 청각/창고런), **윤석**(전기실 브레이커), **김욱**(벌룬보이 환기 마비, 카메라 벗어나야 안전), **준영**(팬텀 포시, 관리실 방치→환기 오류, 카메라 켜야 안전, 밤 1회 — 구현노트 §13).
+### 남은 귀신 (4마리)
+10. **김욱**(카메라 벗어나야 안전, 환기 오류), **준영**(창문 왼쪽 밖 실루엣, CCTV 켜면 사라짐, 무시하면 armed → 정면 복귀 시 점프 → 환기 오류, 구현노트 §13), **윤진**(창고 청각/창고런), **윤석**(전기실 브레이커).
 
 ### 밤 진행 / 저장
-10. **currentNight 자동화 + 저장(PlayerPrefs)** — 지금 수동. 클리어 시 다음 밤. (유저: "밤 넘기기는 밸런스라 기능 다 만들고 마지막에" — 우선순위 낮춤.)
-11. 밤별 값 곡선(fixedNodeWaits, aiLevel, 연호 AI 2일1→5일16, 종 횟수 2일5/3일4/4일3/5일2).
+11. **currentNight 자동화 + 저장(PlayerPrefs)** — 유저: "기능 다 만들고 마지막에."
 
-### 현승 마무리
-12. 현승 R3(환풍구), §14 자동 타이머(팬텀 프레디식), 스택 시각효과(1 조명깜빡/2 조명나감/3 정전).
-
-### Phase 8 (그래픽 — 전부 맨 나중)
-13. 조명·저해상도 필터·3D 점프스케어 애니(현승 팬텀 잔상/퍼펫 즉사, 연호 창문 급습, 윤진 창고런 등 **죽음마다 고유 애니·사운드·카메라워크**)·종소리 등 사운드(상태별: 정상/쿨 거부음/소진 거부음/오류)·환풍구 앰비언스·ProBuilder 맵·에러 패널 UI(FNAF3 시스템 리셋 메뉴)·리셋 진행 바·JumpscareManager(즉사>비즉사 우선순위 통합)·개발 로그 정리.
+### Phase 8 (그래픽·사운드 — 전부 맨 나중)
+12. 조명·저해상도 필터·3D 점프스케어 애니(죽음마다 고유 애니·사운드·카메라워크)·종소리/비상 종소리/거부음·CAM07 창고 소리(현승 와장창 등)·환풍구 앰비언스·ProBuilder 맵·에러 패널 UI(FNAF3 시스템 리셋 메뉴, 에러 항목 빨간 점멸)·리셋 진행 바·JumpscareManager(즉사>비즉사 우선순위)·개발 로그 정리.
 
 ---
 
-## 7. 문서 위치
-- 기획서: `독서실_경비_기획서_이름스왑.md` (스왑본, 최신)
+## 7. 문서 위치 (`Assets/Mds/`)
+- 기획서: `독서실_경비_기획서_이름스왑.md` (스왑본)
 - 귀신 행동상세: `귀신_행동상세_이름스왑.md`
-- 구현노트: `구현_노트_이름스왑.md` (§8~14: 리셋 패널, 점프스케어, 맵 방식, 연호 종, 카메라 에러, 준영 재설계, 현승 자동 트리거)
-- **기획/귀신 관련 판단은 반드시 이 문서들 먼저 확인 후.**
+- 구현노트: `구현_노트_이름스왑.md` (§8~14: 리셋 패널, 점프스케어, 맵 방식, 연호 종, 카메라 에러, 준영 재설계, 현승 자동 트리거 / **§15: 2026-11-24 결정 정리**)
+- **기획/귀신 관련 판단은 반드시 이 문서들 먼저 확인 후.** 문서 간 충돌 시 더 최근 결정(구현노트 > 기획서, §15 > 이전 절)이 우선이지만, 애매하면 유저에게 확인.
+- 비상 종은 기획서에 없고 구현노트 §15.6에만 있음.
 
 ---
 
 ## 8. 한 줄 요약 (스타일)
-한국어로, 따뜻하고 격려하며, 설계 규율과 좋은 발견을 칭찬하되, **대등한 협업자로서 비판적으로 함께 사고**한다. 알고리즘을 말로 먼저 확인 → 유저 이해 확인 → 한글 주석 코드(작게 쪼개거나 통파일 교체). 클릭 단위 Unity 안내. 문서 없이 추측 금지. 메커니즘 먼저, 그래픽은 Phase 8.
+한국어로, 따뜻하고 격려하며, 설계 규율과 좋은 발견을 칭찬하되, **대등한 협업자로서 비판적으로 함께 사고**한다. 알고리즘을 말로 먼저 확인 → 유저 이해 확인 → 한글 주석 코드(작게 쪼개거나 통파일 교체). 클릭 단위 Unity 안내. 문서 없이 추측 금지. 메커니즘 먼저, 그래픽은 Phase 8. 한 일은 확인한 것만 했다고 말한다.

@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// 비상 종: 창문앞 연호 최후 수단 (광역, 완전 리셋).
-// 배터리 왕창 + 쿨 길게 + 하루 4번 + 초과 시 오디오 오류.
-// Overlay 버튼 (가운데 구역 볼 때만). 셔터 버튼과 동일 방식.
+// 비상 종: 일반 종으로 연호를 못 막았을 때 쓰는 진짜 최후 수단.
+// - 효과는 연호가 "창문앞"일 때만 (완전 후퇴 → 재등장 대기). 그 외엔 헛방.
+// - 누르면 효과 여부와 상관없이 횟수·쿨·배터리 소모 (없는데 누른 건 플레이어 실수).
+// - 오디오 시스템과 별개 장치: 오디오 고장 중에도 작동, 소진해도 오디오 고장 안 남, 리셋으로 안 채워짐.
+// - 창문 옆 벽 World Space 버튼 (가운데 구역 볼 때만 표시).
 public class EmergencyBell : MonoBehaviour
 {
     [Header("참조")]
@@ -14,8 +16,8 @@ public class EmergencyBell : MonoBehaviour
 
     [Header("대가")]
     public float batteryCost = 20f;      // 배터리 왕창
-    public float cooldown = 15f;         // 쿨 길게
-    public int usesPerNight = 4;         // 하루 4번
+    public float cooldown = 60f;         // 쿨 아주 길게 (연속 실패 방지)
+    public int usesPerNight = 2;         // 하루 2번
 
     private int usesLeft;
     private float cooldownTimer = 0f;
@@ -45,11 +47,10 @@ public class EmergencyBell : MonoBehaviour
     // 버튼 OnClick이 호출
     public void PressEmergencyBell()
     {
-        // 횟수 소진 → 오디오 오류
+        // 횟수 소진 → 그냥 안 눌림 (오디오와 무관)
         if (usesLeft <= 0)
         {
-            Debug.Log("비상 종 소진! 오디오 오류");
-            // TODO: 오디오 오류 발동 (오디오 고장 시스템 연결)
+            Debug.Log("비상 종 소진 - 작동 안 함");
             // TODO: 거부음 사운드 (Phase 8)
             return;
         }
@@ -57,28 +58,21 @@ public class EmergencyBell : MonoBehaviour
         // 쿨타임 중
         if (cooldownTimer > 0f)
         {
-            Debug.Log("비상 종 쿨타임 중");
+            Debug.Log($"비상 종 쿨타임 중 ({cooldownTimer:F0}초 남음)");
             // TODO: 거부음 사운드 (Phase 8)
             return;
         }
 
-        // 발동
-        if (yeonho != null)
-        {
-            bool success = yeonho.EmergencyPush();
-            if (success)
-            {
-                usesLeft--;
-                cooldownTimer = cooldown;
-                if (BatteryManager.Instance != null) BatteryManager.Instance.Drain(batteryCost);
-                Debug.Log($"★ 비상 종 발동! (남은 횟수 {usesLeft})");
-                // TODO: 비상 종소리 (Phase 8)
-            }
-            else
-            {
-                // 빼꼼 등 이미 늦음
-                Debug.Log("비상 종 무효 (연호 빼꼼 — 이미 늦음)");
-            }
-        }
+        // 누른 순간 무조건 소모 (헛방이어도)
+        usesLeft--;
+        cooldownTimer = cooldown;
+        if (BatteryManager.Instance != null) BatteryManager.Instance.Drain(batteryCost);
+        // TODO: 비상 종소리 (Phase 8)
+
+        bool effective = (yeonho != null) && yeonho.EmergencyPush();
+        if (effective)
+            Debug.Log($"★ 비상 종 발동! 연호 완전 후퇴 (남은 횟수 {usesLeft})");
+        else
+            Debug.Log($"비상 종 헛방 — 연호 창문앞 아님 (남은 횟수 {usesLeft})");
     }
 }
