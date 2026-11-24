@@ -324,6 +324,17 @@ public class Yeonho : MonoBehaviour
         return true;   // 성공
     }
 
+    // 배터리 방전 암전 연출용 (BatteryBlackout가 호출) — AI는 꺼진 상태(enabled=false)에서 창문앞에 모습만 드러냄
+    public void AppearAtWindowForBlackout()
+    {
+        if (windowFrontPos != null)
+        {
+            transform.position = windowFrontPos.position;
+            transform.rotation = windowFrontPos.rotation;
+        }
+        if (model != null) model.SetActive(true);
+    }
+
     // 후퇴 예약 (종소리 + 랜덤 텀 후 실행)
     void ScheduleRetreat(int targetNode)
     {

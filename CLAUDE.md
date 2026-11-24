@@ -159,8 +159,8 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 - 에셋 시계 개조. 현실시간 → **GameManager.gameHour/gameMinute**. URP 전용(_BaseMap/_EmissionMap만). 3D 오브젝트 시계(월드), 분도 표시.
 
 ### 4.9 BatteryManager.cs — COMPLETE
-- static Instance. battery 100/maxBattery. **naturalDrain**(0.6은 너무 빠름, 0.1). Drain(즉시)/DrainPerSecond(지속). Deplete → `GameManager.GameOver("배터리 방전")`.
-- **배터리 방전 = 즉사**(기획: 암전→연호 강제 점프스케어 — **연출 연결은 TODO**). ≠ 현우 배선 고장(창고런).
+- static Instance. battery 100/maxBattery. **naturalDrain**(0.6은 너무 빠름, 0.1). Drain(즉시)/DrainPerSecond(지속). Deplete → **BatteryBlackout.Begin()**(씬에 없으면 자동으로 붙임). 여기서 GameOver 안 함 — 밤 타이머가 흘러야 6시 생존 가능.
+- **배터리 방전 = 암전 시퀀스**(4.15). ≠ 현우 배선 고장(창고런).
 - 장치별 소모율은 **각 장치가 배터리에 요청**(셔터 shutterDrainRate, 종 bellDrain, 비상 종 batteryCost).
 
 ### 4.10 BatteryDisplay.cs — COMPLETE
@@ -204,7 +204,7 @@ move_counter > 임계값 → 행동 굴림
 - **역할:** 일반 종으로 못 막았을 때 쓰는 **진짜 최후 수단.** 창문 옆 벽 World 버튼(가운데 구역 볼 때만, UIRayCamera로 클릭 판정).
 - **효과는 연호가 창문앞일 때만** → `Yeonho.EmergencyPush()` 완전 후퇴(Spawning으로, 재등장 대기). 등장 전·이동 중·빼꼼 = 헛방(false).
 - 누르면 효과와 무관하게 **횟수·쿨·배터리 소모.**
-- **하루 2번(usesPerNight), 쿨 60초.** (코드 기본값. 씬 Inspector에 옛 값 4/15가 남아 있을 수 있음 — 확인할 것)
+- **하루 2번(usesPerNight), 쿨 60초.** (씬 값도 2/60으로 맞춰둠)
 - **오디오 시스템과 별개:** 오디오 고장 중에도 작동, 소진해도 오디오 고장 안 남(그냥 안 눌림), 리셋으로 안 채워짐.
 
 ### 4.12 AudioSystem.cs — COMPLETE (오디오 고장 + 리셋 + 종 횟수)
@@ -229,6 +229,19 @@ move_counter > 임계값 → 행동 굴림
 - 리셋: `StartReset()` / `StartResetFor(초)`, 예방적 가능(게이지 초기화). 완료 시 셔터 잠금만 해제.
 - 참조(shutter, transitionDetector)는 비어 있으면 자동으로 찾음.
 
+### 4.15 BatteryBlackout.cs — COMPLETE 1차 (배터리 방전 암전, 구현노트 §15.11)
+- ⚠️ **"방전" 전용.** 현우 3스택 "배선 고장"(기획서가 "정전"이라 부르는 것, 창고런으로 수리 가능)과 완전히 별개. 이름도 그래서 Outage(정전)가 아니라 Blackout(방전 암전).
+- 흐름: **암전(조용한 시간 10~24초 랜덤)** → **오르골 8초**(창문앞에 연호 + 오르골 + 화면 깜빡) → **완전 어둠 3초** → 연호 점프스케어 → GameOver("배터리 방전 — 연호"). 오르골 이후는 고정 길이(유저 결정).
+- **6시가 먼저 오면 생존**(`GameManager.isNightOver` 체크). 밤 타이머는 계속 흐르고 시계만 꺼짐.
+- **암전 중 시야 회전만 가능.** 잠그는 방식:
+  - 입력 잠금 플래그(`inputLocked`): CCTVController, PanelController, ShutterController, EmergencyBell — **컴포넌트를 끄지 않는 이유:** CCTV·패널을 보던 중이면 카메라 복귀 이동을 그 컴포넌트 Update가 해야 해서.
+  - 컴포넌트 끄기(enabled=false): 현승·현우·연호, AudioSystem·CameraSystem·VentilationSystem, ScreenTransitionDetector(**먼저 끔** — 안 그러면 CCTV 강제 다운이 화면 전환으로 잡혀 연호 즉사 등 발생).
+  - `PowerOff()`: MonitorDisplay(검은 화면), Clock_Digital(숫자 검게), ShutterController(열림+불빛 끔).
+  - 패널은 리셋 중이어도 `ForceCloseIgnoringReset()`으로 닫음.
+- 연호는 AI 꺼진 채 `AppearAtWindowForBlackout()`로 모습만 드러냄.
+- 화면: 검은 덮개(`ScreenOverlayFactory`, sortingOrder 110) — 점프스케어 직전에 치움.
+- 오르골 소리: `musicBoxClip` 비우면 코드가 임시 멜로디 생성. 진짜 소리는 Phase 8.
+
 ---
 
 ## 5. ⚠️ 함정 / 하지 말 것 (실제로 겪은 것들)
@@ -251,7 +264,7 @@ move_counter > 임계값 → 행동 굴림
 ## 6. 남은 작업 (우선순위 순)
 
 ### 바로 할 수 있는 것
-1. **배터리 방전 → 연호 점프스케어** — 지금은 GameOver만. 기획: 암전 → 연호 강림(FNAF1식). BatteryManager TODO.
+1. ~~배터리 방전 → 연호 점프스케어~~ → 완료(4.15 방전 암전 시퀀스).
 2. ~~현승 §14 자동 발동~~ → 완료(화면 전환 즉시 OR 5초 자동, 구현노트 §15.10). 알려진 모서리: 패널 리셋 중 STRIKE1이면 패널이 안 닫힌 채 점프스케어 종료 — 테스트 때 확인.
 3. **고장 알림 설계 (오디오/카메라)** — 지금 로그뿐이라 플레이어가 고장을 모름(오디오는 32초 안에 못 고치면 죽는데!). 유저 아이디어: **FNAF3처럼 오디오 고장 시 경비실에 사이렌/경고.** 사운드+시각 경고 방식 설계 필요. 최소한 패널 임시 상태 표시("AUDIO: OK/ERROR/RESETTING")도 후보.
 
@@ -275,7 +288,8 @@ move_counter > 임계값 → 행동 굴림
 
 ### Phase 8 (그래픽·사운드 — 전부 맨 나중)
 12. **환기 흐려짐 연출 교체** — 지금은 `VentilationSystem`이 검은 화면을 자동 생성(`blurOverlay` 칸은 **일부러 비워둔 것** — 유저가 칸을 숨기지 말고 남겨두라고 함). Phase 8에서: 직접 만든 연출(Canvas + CanvasGroup — 노이즈/비네트 등 여러 장 얹어도 alpha 하나로 같이 페이드)을 그 칸에 연결 / 이름 blur → fade 정리(실제론 어두워짐) / sortingOrder 100이라 점프스케어를 잠깐 가리는 문제 정리.
-13. 조명·저해상도 필터·3D 점프스케어 애니(죽음마다 고유 애니·사운드·카메라워크)·종소리/비상 종소리/거부음·CAM07 창고 소리(현승 와장창 등)·환풍구 앰비언스·ProBuilder 맵·에러 패널 UI(FNAF3 시스템 리셋 메뉴, 에러 항목 빨간 점멸)·리셋 진행 바·JumpscareManager(즉사>비즉사 우선순위)·개발 로그 정리.
+13. **방전 암전 연출 교체** — 진짜 오르골 소리(`BatteryBlackout.musicBoxClip`, 창문 쪽 3D 소리로), 덮개 깜빡임 대신 진짜 조명 끄기·창문 쪽 불빛 깜빡임, 연호 방전 암전 전용 점프스케어 애니.
+14. 조명·저해상도 필터·3D 점프스케어 애니(죽음마다 고유 애니·사운드·카메라워크)·종소리/비상 종소리/거부음·CAM07 창고 소리(현승 와장창 등)·환풍구 앰비언스·ProBuilder 맵·에러 패널 UI(FNAF3 시스템 리셋 메뉴, 에러 항목 빨간 점멸)·리셋 진행 바·JumpscareManager(즉사>비즉사 우선순위)·개발 로그 정리.
 
 ---
 

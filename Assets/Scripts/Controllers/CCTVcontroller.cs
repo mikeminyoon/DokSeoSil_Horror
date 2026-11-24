@@ -21,6 +21,7 @@ public class CCTVController : MonoBehaviour
     public float moveSpeed = 6f;
 
     public bool isCameraDown = false;
+    public bool inputLocked = false;    // 방전 암전 등: 켜기/끄기 입력 무시 (카메라 복귀 이동은 계속 처리)
     private Camera cam;
     private Transform camT;
 
@@ -49,7 +50,7 @@ public class CCTVController : MonoBehaviour
         bool inBottom = my < bottomZone;
 
         // === 토글 판정: 아래 영역에 새로 진입한 순간만 ===
-        if (inBottom && !wasInBottom)
+        if (inBottom && !wasInBottom && !inputLocked)
         {
             if (isCameraDown)
                 ExitCCTV();

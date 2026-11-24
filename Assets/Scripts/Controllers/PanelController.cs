@@ -27,6 +27,7 @@ public class PanelController : MonoBehaviour
     public float resetAllDuration = 8f;
 
     public bool isPanelOpen = false;        // 다른 스크립트가 읽을 수 있게
+    public bool inputLocked = false;        // 방전 암전 등: 패널 자동 열림 막음 (카메라 복귀 이동은 계속 처리)
     private Camera cam;
     private Transform camT;
 
@@ -56,7 +57,7 @@ public class PanelController : MonoBehaviour
     {
         if (!isPanelOpen && !returning)
         {
-            if (viewController.enabled && viewController.currentZone == panelZone)
+            if (!inputLocked && viewController.enabled && viewController.currentZone == panelZone)
                 OpenPanel();
         }
         else if (isPanelOpen)
@@ -118,6 +119,17 @@ public class PanelController : MonoBehaviour
             return;
         }
 
+        DoClose();
+    }
+
+    // 리셋 잠금 무시하고 강제로 닫기 (방전 암전 — 패널도 전원이 나가서 리셋이 의미 없음)
+    public void ForceCloseIgnoringReset()
+    {
+        if (isPanelOpen) DoClose();
+    }
+
+    void DoClose()
+    {
         isPanelOpen = false;
         returning = true;
 

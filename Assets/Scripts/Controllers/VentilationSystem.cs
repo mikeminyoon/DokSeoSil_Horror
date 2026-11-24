@@ -150,28 +150,10 @@ public class VentilationSystem : MonoBehaviour
     }
 
     // 흐려짐용 검은 화면 자동 생성 (Inspector 연결 누락 방지)
+    // sortingOrder 100 = 다른 UI 위 (임시 — 점프스케어와 겹치면 잠깐 가려질 수 있음, Phase 8에서 정리)
     CanvasGroup CreateBlurOverlay()
     {
-        var root = new GameObject("VentBlurOverlay (자동 생성)");
-        var canvas = root.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;   // 다른 UI 위 (임시 — 점프스케어와 겹치면 잠깐 가려질 수 있음, Phase 8에서 정리)
-
-        var dark = new GameObject("Dark");
-        dark.transform.SetParent(root.transform, false);
-        var img = dark.AddComponent<Image>();
-        img.color = Color.black;
-        img.raycastTarget = false;   // 클릭 막지 않음
-        var rt = img.rectTransform;
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        var group = root.AddComponent<CanvasGroup>();
-        group.interactable = false;
-        group.blocksRaycasts = false;
-        return group;
+        return ScreenOverlayFactory.CreateBlack("VentBlurOverlay (자동 생성)", 100);
     }
 
     // === 리셋 ===

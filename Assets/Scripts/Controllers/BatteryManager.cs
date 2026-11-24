@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 배터리 매니저: 공통 전력. 장치들이 소모 요청.
-// 0 되면 방전 → 게임오버. 빈 오브젝트에 붙인다.
+// 0 되면 방전 → 암전 시퀀스(BatteryBlackout). 빈 오브젝트에 붙인다.
 public class BatteryManager : MonoBehaviour
 {
     public static BatteryManager Instance;
@@ -54,14 +54,19 @@ public class BatteryManager : MonoBehaviour
         if (battery < 0f) battery = 0f;
     }
 
-    // 방전 → 게임오버
+    // 방전 → 암전 시퀀스 (조용한 암전 → 오르골 → 어둠 → 연호 점프스케어, 6시 오면 생존)
+    // 게임오버는 여기서 안 함 — 밤 타이머가 계속 흘러야 6시 생존이 가능해서. BatteryBlackout가 처리.
     void Deplete()
     {
         isDead = true;
-        Debug.Log("★★★ 배터리 방전! 암전 → 게임오버");
-        // TODO: 암전 연출 → 연호 강제 점프스케어 (연호 만들면)
-        if (GameManager.Instance != null)
-            GameManager.Instance.GameOver("배터리 방전");
+
+        var outage = FindAnyObjectByType<BatteryBlackout>();
+        if (outage == null)
+        {
+            // 씬에 없으면 자동으로 붙임 (기본값으로 작동). Inspector에서 조절하려면 이 오브젝트에 BatteryBlackout를 미리 붙여둘 것.
+            outage = gameObject.AddComponent<BatteryBlackout>();
+        }
+        outage.Begin();
     }
 
     // 잔량 비율 (0~1) — UI용

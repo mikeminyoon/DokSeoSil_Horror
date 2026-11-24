@@ -26,6 +26,7 @@ public class ShutterController : MonoBehaviour
 
     public bool isShutterClosed = false;   // 셔터 닫힘? (다른 스크립트가 읽음)
     public bool isForcedOpen = false;      // 환기 오류로 강제 개방 중? (이동안 못 닫음 — VentilationSystem이 세팅)
+    public bool inputLocked = false;       // 방전 암전: 버튼 숨김 + 셔터·불빛 조작 불가 (BatteryBlackout가 세팅)
 
     [Header("배터리 소모")]
     public float shutterDrainRate = 2f;
@@ -44,7 +45,7 @@ public class ShutterController : MonoBehaviour
     {
         // 오른쪽 구역 볼 때만 버튼 보이게
         bool inVentZone = viewController.enabled && viewController.currentZone == ventZone;
-        SetButtons(inVentZone);
+        SetButtons(inVentZone && !inputLocked);
 
         // 셔터 닫혀있으면 배터리 소모
         if (isShutterClosed && BatteryManager.Instance != null)
@@ -63,6 +64,8 @@ public class ShutterController : MonoBehaviour
     // 셔터 토글 (버튼이 호출)
     public void ToggleShutter()
     {
+        if (inputLocked) return;   // 방전 암전
+
         // 환기 오류 중엔 안전장치가 셔터를 붙잡고 있어서 못 닫음
         if (isForcedOpen)
         {
@@ -97,6 +100,7 @@ public class ShutterController : MonoBehaviour
     // 라이트 켜기 (버튼 누름 = PointerDown)
     public void LightOn()
     {
+        if (inputLocked) return;   // 방전 암전 — 불빛 안 켜짐
         isLightOn = true;
         if (ventLight != null) ventLight.enabled = true;
     }
@@ -106,6 +110,15 @@ public class ShutterController : MonoBehaviour
     {
         isLightOn = false;
         if (ventLight != null) ventLight.enabled = false;
+    }
+
+    // 방전 암전: 셔터 열림(원작 FNAF1처럼 문이 열려버림) + 불빛 끔 + 조작 잠금
+    public void PowerOff()
+    {
+        inputLocked = true;
+        isShutterClosed = false;
+        LightOff();
+        SetButtons(false);
     }
 
     // 점프스케어 등으로 조작 강제 잠금 (버튼 숨김 + 라이트 끔)

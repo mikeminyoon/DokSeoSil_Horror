@@ -45,6 +45,8 @@ public class MonitorDisplay : MonoBehaviour
     private Color32[] storagePixels;
     private float storageTimer = 0f;
 
+    private bool poweredOff = false;     // 방전 암전 — 화면 까맣게, 아무것도 안 함
+
     void Start()
     {
         monitorMat = GetComponent<Renderer>().material;
@@ -67,6 +69,8 @@ public class MonitorDisplay : MonoBehaviour
 
     void Update()
     {
+        if (poweredOff) return;   // 방전 암전 — 꺼진 화면 그대로
+
         // 카메라 시스템 고장 = 완전 먹통. 방/상태 무관하게 항상 스태틱만.
         if (cameraSystem != null && cameraSystem.IsCameraBroken())
         {
@@ -237,6 +241,19 @@ public class MonitorDisplay : MonoBehaviour
         }
         storageTex.SetPixels32(storagePixels);
         storageTex.Apply();
+    }
+
+    // 방전 암전: 모니터 꺼짐 (검은 화면 + 방 버튼 숨김)
+    public void PowerOff()
+    {
+        poweredOff = true;
+        if (monitorMat != null) monitorMat.mainTexture = Texture2D.blackTexture;
+        if (buttonGroup != null)
+        {
+            buttonGroup.alpha = 0f;
+            buttonGroup.interactable = false;
+            buttonGroup.blocksRaycasts = false;
+        }
     }
 
     public void RingBellCurrentRoom()

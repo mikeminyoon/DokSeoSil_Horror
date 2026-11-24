@@ -19,6 +19,8 @@ public class EmergencyBell : MonoBehaviour
     public float cooldown = 60f;         // 쿨 아주 길게 (연속 실패 방지)
     public int usesPerNight = 2;         // 하루 2번
 
+    [HideInInspector] public bool inputLocked = false;   // 방전 암전: 버튼 숨김 + 작동 안 함 (BatteryBlackout가 세팅)
+
     private int usesLeft;
     private float cooldownTimer = 0f;
 
@@ -35,7 +37,7 @@ public class EmergencyBell : MonoBehaviour
         if (cooldownTimer > 0f) cooldownTimer -= Time.deltaTime;
 
         // 가운데 구역 볼 때만 버튼 표시
-        bool showBell = (viewController != null && viewController.currentZone == centerZone);
+        bool showBell = !inputLocked && (viewController != null && viewController.currentZone == centerZone);
         if (buttonGroup != null)
         {
             buttonGroup.alpha = showBell ? 1f : 0f;
@@ -47,6 +49,8 @@ public class EmergencyBell : MonoBehaviour
     // 버튼 OnClick이 호출
     public void PressEmergencyBell()
     {
+        if (inputLocked) return;   // 방전 암전
+
         // 횟수 소진 → 그냥 안 눌림 (오디오와 무관)
         if (usesLeft <= 0)
         {

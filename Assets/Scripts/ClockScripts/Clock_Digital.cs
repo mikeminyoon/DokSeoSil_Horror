@@ -7,14 +7,29 @@ public class Clock_Digital : MonoBehaviour
     Renderer objRenderer;
     float tickDelay;
     bool tick;
+    bool poweredOff = false;   // 방전 암전 — 숫자 꺼짐 (게임 시간 자체는 GameManager에서 계속 흐름)
 
     void Start()
     {
         objRenderer = GetComponent<Renderer>();
     }
 
+    // 방전 암전: 숫자·콜론(materials[1~5])을 검게 + 발광 끔 → 시계가 꺼진 것처럼
+    public void PowerOff()
+    {
+        poweredOff = true;
+        if (objRenderer == null) objRenderer = GetComponent<Renderer>();
+        var mats = objRenderer.materials;
+        for (int i = 1; i <= 5 && i < mats.Length; i++)
+        {
+            mats[i].SetColor("_BaseColor", Color.black);
+            mats[i].SetColor("_EmissionColor", Color.black);
+        }
+    }
+
     void Update()
     {
+        if (poweredOff) return;
         // GameManager 없으면 아무것도 안 함
         if (GameManager.Instance == null) return;
 
