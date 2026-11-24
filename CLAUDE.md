@@ -105,7 +105,7 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 - 루트 해금은 `GameManager.Night`: 1밤 R1 / 2밤~ +R2·R4 / 3밤~ +R1'.
 - 엔진B(cycleTime마다 rand<aiLevel 전진) + 행동 굴림(85/10/5) + 창문 워크패스 + GazeBox.
 - **STRIKE1**(비즉사, 오디오 고장 — 1일차는 점프스케어만) → **STRIKE2**(즉사, 퍼펫 — AudioSystem이 방치 32초 후 호출). STRIKE2에서 `GameManager.GameOver("현승퍼펫")` + `jumpscare.PlayGameOver()`.
-- HandleScreenTransition 구독 중. **§14 자동 타이머(팬텀 프레디식 자동 발동)는 아직 미반영.**
+- **armed 발동 = 둘 중 먼저 오는 쪽** (§14 원안 "자동만"을 유저가 변경, 구현노트 §15.10): ① 화면 전환 시 즉시(HandleScreenTransition 구독 유지) ② 안 해도 `armedAutoDelay` 5초 뒤 자동. CCTV/패널 보고 있었으면 jumpscare.Play()가 강제로 닫고, 그 CCTV 강제 다운이 화면 전환이라 연호 캐스케이드가 생김.
 - 창고 노드 도착 시 "와장창" 로그 — 소리는 Phase 8.
 
 ### 4.2 현우 (Hyunwoo.cs) — COMPLETE 완전체, 엔진B + 판정 A + 모델/애니
@@ -132,8 +132,8 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 - **CCTVController.cs**: FNAF식 토글(마우스 하단 재진입으로 on/off). 가운데 구역(allowedZone=1)에서만 켜짐. `isCameraDown` public. **"현재 방" 개념 없음** — 위치/회전만 관리. 복귀는 **homeLocalPos**(Start에서 1회 고정). ForceCancel/CancelReturn 상호 처리.
 - **PanelController.cs**: 동일하게 homeLocalPos 방식. 왼쪽 구역 가면 자동으로 패널 열림.
   - `ClosePanel()`(Exit 버튼): **오디오든 카메라든 리셋 중이면 못 나감**(손 묶임).
-  - `ResetAll()`(전체 리셋 버튼): 오디오+카메라 동시, `resetAllDuration` 8초.
-  - 참조: audioSystem, cameraSystem (**씬에서 연결 안 하면 null이라 잠금이 조용히 안 걸림** — 실제로 겪음).
+  - `ResetAll()`(전체 리셋 버튼): 오디오+카메라+환기 동시, `resetAllDuration` 8초.
+  - 참조: audioSystem, cameraSystem, ventSystem — 비어 있으면 Start에서 자동으로 찾음(연결 누락으로 잠금·고장 화면이 조용히 안 된 적 있어서 바꿈).
 - **ViewController.cs**: 4구역, 구역별 microYaw/microPitch 배열화, SuppressEdgeUntilRelease. `currentZone` public.
 - **ScreenTransitionDetector.cs**: CCTV 올림/내림 + 패널 열기/닫기 → `OnScreenTransition` 이벤트. `ForceTransition()`(환기 오류용). 시야 회전은 전환 아님.
 
@@ -141,7 +141,7 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 - 상태 enum: Off / Switching / Active. **currentRoom**(지금 보는 방 인덱스, roomFeeds 기준).
 - `SwitchRoom(idx)`(버튼 호출), `GhostMoveStatic()`(귀신 이동 시 스태틱), buttonGroup(CanvasGroup, 방 전환 버튼 묶음).
 - `RingBellCurrentRoom()` → `yeonho.RingBell(currentRoom)`. 종 버튼 OnClick → 이 함수.
-- **CAM07(`storageRoomIndex`=6)은 Active여도 항상 스태틱.**
+- **CAM07(`storageRoomIndex`=6)은 Active여도 영상 대신 전용 화면** — 거의 검은 바탕 + 드문드문 먼지 점(`storageBase*`/`storageSpeck*`/`storageInterval`로 조절). 전환 스태틱·카메라 고장 스태틱(밝은 TV 노이즈)과 일부러 다르게 함(유저 요청).
 - **카메라 고장(`cameraSystem.IsCameraBroken()`) 시 방·상태 무관 전부 스태틱.**
 
 ### 4.6 JumpscareOverlay.cs — COMPLETE
@@ -219,7 +219,15 @@ move_counter > 임계값 → 행동 굴림
 - CCTV 켜져 있는 동안만 **`rollInterval` 3.5초마다 `breakChance` 3%** 굴림 → 고장 시 CCTV 완전 스태틱. 끄면 주기 누적 초기화.
 - 고장 중에도 종은 사용 가능(원작대로).
 - 리셋: AudioSystem과 같은 구조(`StartReset()` / `StartResetFor(초)`, 예방적 가능).
-- 참조: cctv. MonitorDisplay·PanelController가 cameraSystem을 참조함.
+- 참조: cctv. MonitorDisplay·PanelController가 cameraSystem을 참조함(비어 있으면 Start에서 자동으로 찾음).
+
+### 4.14 VentilationSystem.cs — COMPLETE 1차 (환기 에러, 구현노트 §15.9)
+- **원인(지금):** 셔터 공기 게이지 — 닫고 5초(`closedGrace`)까지 공짜, 이후 초당 +1, 20(`airLimit`)이면 고장. 열면 초당 -1. 닫힌 시간도 열면 연 만큼만 줄어듦(깜빡 꼼수 방지).
+- **원인(나중):** 김욱·준영 → `BreakVent(이유)`.
+- **효과:** 셔터 강제 개방 + 못 닫음(`ShutterController.SetForcedOpen`) / 8초 후부터 12초마다 흐려짐 → 가장 어두운 순간 `ForceTransition()` (연호·armed 현승 둘 다 반응).
+- 흐려짐 검은 화면은 `blurOverlay` 비어 있으면 자동 생성(Overlay Canvas, sortingOrder 100 — 점프스케어를 잠깐 가릴 수 있음, Phase 8에서 정리).
+- 리셋: `StartReset()` / `StartResetFor(초)`, 예방적 가능(게이지 초기화). 완료 시 셔터 잠금만 해제.
+- 참조(shutter, transitionDetector)는 비어 있으면 자동으로 찾음.
 
 ---
 
@@ -244,7 +252,7 @@ move_counter > 임계값 → 행동 굴림
 
 ### 바로 할 수 있는 것
 1. **배터리 방전 → 연호 점프스케어** — 지금은 GameOver만. 기획: 암전 → 연호 강림(FNAF1식). BatteryManager TODO.
-2. **현승 §14 자동 발동** — armed → 짧은 뜸(1~2s) → STRIKE1 자동(화면 전환 무관). 현승의 ScreenTransitionDetector 구독 제거. 설계 확정됨(구현노트 §14).
+2. ~~현승 §14 자동 발동~~ → 완료(화면 전환 즉시 OR 5초 자동, 구현노트 §15.10). 알려진 모서리: 패널 리셋 중 STRIKE1이면 패널이 안 닫힌 채 점프스케어 종료 — 테스트 때 확인.
 3. **고장 알림 설계 (오디오/카메라)** — 지금 로그뿐이라 플레이어가 고장을 모름(오디오는 32초 안에 못 고치면 죽는데!). 유저 아이디어: **FNAF3처럼 오디오 고장 시 경비실에 사이렌/경고.** 사운드+시각 경고 방식 설계 필요. 최소한 패널 임시 상태 표시("AUDIO: OK/ERROR/RESETTING")도 후보.
 
 ### 밸런스
@@ -257,7 +265,7 @@ move_counter > 임계값 → 행동 굴림
 
 ### 시스템 (등뼈)
 8. **정전 / 창고런** — 현우 3스택 → 배선 고장 → 창고런 5박자([결정]→[창고 기어가기 윤진]→[전기실 브레이커 윤석]→[탈출]→[복귀]). freeze 3단계. 5시 이후 창고런 없음.
-9. **환기 에러** — 김욱/준영 공격 시 ON → 주기적 강제 화면 전환. 리셋 패널 3종의 마지막(PanelController 잠금·ResetAll에 추가). 셔터 장시간 폐쇄 → 환기 오류(유저 아이디어)도 검토.
+9. ~~환기 에러~~ → 1차 완료(4.14). 남은 것: 김욱·준영 원인 연결, 연호 흉포 연결.
 
 ### 남은 귀신 (4마리)
 10. **김욱**(카메라 벗어나야 안전, 환기 오류), **준영**(창문 왼쪽 밖 실루엣, CCTV 켜면 사라짐, 무시하면 armed → 정면 복귀 시 점프 → 환기 오류, 구현노트 §13), **윤진**(창고 청각/창고런), **윤석**(전기실 브레이커).
@@ -266,7 +274,8 @@ move_counter > 임계값 → 행동 굴림
 11. **currentNight 자동화 + 저장(PlayerPrefs)** — 유저: "기능 다 만들고 마지막에."
 
 ### Phase 8 (그래픽·사운드 — 전부 맨 나중)
-12. 조명·저해상도 필터·3D 점프스케어 애니(죽음마다 고유 애니·사운드·카메라워크)·종소리/비상 종소리/거부음·CAM07 창고 소리(현승 와장창 등)·환풍구 앰비언스·ProBuilder 맵·에러 패널 UI(FNAF3 시스템 리셋 메뉴, 에러 항목 빨간 점멸)·리셋 진행 바·JumpscareManager(즉사>비즉사 우선순위)·개발 로그 정리.
+12. **환기 흐려짐 연출 교체** — 지금은 `VentilationSystem`이 검은 화면을 자동 생성(`blurOverlay` 칸은 **일부러 비워둔 것** — 유저가 칸을 숨기지 말고 남겨두라고 함). Phase 8에서: 직접 만든 연출(Canvas + CanvasGroup — 노이즈/비네트 등 여러 장 얹어도 alpha 하나로 같이 페이드)을 그 칸에 연결 / 이름 blur → fade 정리(실제론 어두워짐) / sortingOrder 100이라 점프스케어를 잠깐 가리는 문제 정리.
+13. 조명·저해상도 필터·3D 점프스케어 애니(죽음마다 고유 애니·사운드·카메라워크)·종소리/비상 종소리/거부음·CAM07 창고 소리(현승 와장창 등)·환풍구 앰비언스·ProBuilder 맵·에러 패널 UI(FNAF3 시스템 리셋 메뉴, 에러 항목 빨간 점멸)·리셋 진행 바·JumpscareManager(즉사>비즉사 우선순위)·개발 로그 정리.
 
 ---
 

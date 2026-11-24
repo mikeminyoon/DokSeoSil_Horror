@@ -25,6 +25,7 @@ public class ShutterController : MonoBehaviour
     public float moveSpeed = 8f;        // 셔터 여닫는 속도
 
     public bool isShutterClosed = false;   // 셔터 닫힘? (다른 스크립트가 읽음)
+    public bool isForcedOpen = false;      // 환기 오류로 강제 개방 중? (이동안 못 닫음 — VentilationSystem이 세팅)
 
     [Header("배터리 소모")]
     public float shutterDrainRate = 2f;
@@ -62,9 +63,28 @@ public class ShutterController : MonoBehaviour
     // 셔터 토글 (버튼이 호출)
     public void ToggleShutter()
     {
+        // 환기 오류 중엔 안전장치가 셔터를 붙잡고 있어서 못 닫음
+        if (isForcedOpen)
+        {
+            Debug.Log("환기 오류 — 셔터가 강제로 열려 있음 (리셋 필요)");
+            // TODO: 거부음 (Phase 8)
+            return;
+        }
+
         isShutterClosed = !isShutterClosed;
         Debug.Log(isShutterClosed ? "셔터 닫힘" : "셔터 열림");
-        
+    }
+
+    // 환기 오류 강제 개방 켜기/끄기 (VentilationSystem이 호출)
+    // 켜면 즉시 열리고 잠김. 끄면 잠금만 풀림 — 셔터는 열린 채로, 닫는 건 플레이어 몫.
+    public void SetForcedOpen(bool on)
+    {
+        isForcedOpen = on;
+        if (on && isShutterClosed)
+        {
+            isShutterClosed = false;
+            Debug.Log("★ 환기 오류 — 셔터 강제 개방!");
+        }
     }
 
     void SetButtons(bool on)

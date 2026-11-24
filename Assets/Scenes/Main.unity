@@ -1898,7 +1898,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 170974734}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 294077304}
+        m_TargetAssemblyTypeName: VentilationSystem, Assembly-CSharp
+        m_MethodName: StartReset
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &170974734
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3458,6 +3470,62 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1287117635}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &294077303
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 294077305}
+  - component: {fileID: 294077304}
+  m_Layer: 0
+  m_Name: VentSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &294077304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294077303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53e6ed8d86b0f4577a0563a35afdd356, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VentilationSystem
+  shutter: {fileID: 1758782160}
+  transitionDetector: {fileID: 1758782158}
+  blurOverlay: {fileID: 0}
+  isVentBroken: 0
+  closedGrace: 5
+  airLimit: 12
+  closedTime: 0
+  airGauge: 0
+  firstBlurDelay: 8
+  blurInterval: 12
+  fadeTime: 0.8
+  resetDuration: 5
+--- !u!4 &294077305
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294077303}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.59195, y: 1.16807, z: 6.04179}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &298572569
 GameObject:
@@ -9762,6 +9830,12 @@ MonoBehaviour:
   - {fileID: 8400000, guid: 25924f12501a746138197b5c6f226fac, type: 2}
   currentRoom: 0
   storageRoomIndex: 6
+  storageBaseMin: 14
+  storageBaseMax: 18
+  storageSpeckChance: 0.006
+  storageSpeckMin: 43
+  storageSpeckMax: 194
+  storageInterval: 0.08
   staticSize: 128
   staticInterval: 0.05
   switchStaticTime: 0.3
@@ -14714,6 +14788,7 @@ MonoBehaviour:
   gazeFillSpeed: 1.2
   gazeDrainSpeed: 1
   gazeRequired: 4
+  armedAutoDelay: 5
   cycleTime: 5
   aiLevel: 3
   weightForward: 85
@@ -18326,6 +18401,7 @@ MonoBehaviour:
   cctv: {fileID: 1758782157}
   audioSystem: {fileID: 1490514179}
   cameraSystem: {fileID: 381909544}
+  ventSystem: {fileID: 0}
   panelButtons: {fileID: 438718954}
   panelZone: 0
   centerZone: 1
@@ -18354,6 +18430,7 @@ MonoBehaviour:
   ventZone: 2
   moveSpeed: 9
   isShutterClosed: 0
+  isForcedOpen: 0
   shutterDrainRate: 0.5
 --- !u!1 &1759816871
 GameObject:
@@ -19971,7 +20048,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1923413581
 Transform:
   m_ObjectHideFlags: 0
@@ -23988,3 +24065,4 @@ SceneRoots:
   - {fileID: 1706893817}
   - {fileID: 381909545}
   - {fileID: 627630001}
+  - {fileID: 294077305}

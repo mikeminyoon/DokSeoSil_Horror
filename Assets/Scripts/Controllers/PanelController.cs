@@ -11,6 +11,7 @@ public class PanelController : MonoBehaviour
     public CCTVController cctv;
     public AudioSystem audioSystem;
     public CameraSystem cameraSystem;
+    public VentilationSystem ventSystem;
 
     [Header("패널 구역")]
     public CanvasGroup panelButtons;        // 패널 UI CanvasGroup (패널 열릴 때만 활성화)
@@ -22,7 +23,7 @@ public class PanelController : MonoBehaviour
     [Header("전진 속도")]
     public float moveSpeed = 6f;
 
-    [Header("전체 리셋 (오디오+카메라 동시 — §12.3 '둘 8s')")]
+    [Header("전체 리셋 (오디오+카메라+환기 동시 — 몇 개든 8초, 따로 하는 것보다 빠름)")]
     public float resetAllDuration = 8f;
 
     public bool isPanelOpen = false;        // 다른 스크립트가 읽을 수 있게
@@ -40,6 +41,8 @@ public class PanelController : MonoBehaviour
         cam = GetComponentInChildren<Camera>();
         camT = cam.transform;
         if (audioSystem == null) audioSystem = FindAnyObjectByType<AudioSystem>();
+        if (cameraSystem == null) cameraSystem = FindAnyObjectByType<CameraSystem>();
+        if (ventSystem == null) ventSystem = FindAnyObjectByType<VentilationSystem>();
         if (viewController == null) viewController = GetComponent<ViewController>();
 
         // 처음 위치 = 영원한 집 (구역 전환은 부모 회전이라 카메라 자식 위치는 안 바뀜)
@@ -98,7 +101,7 @@ public class PanelController : MonoBehaviour
     // 패널 닫기 (Exit 버튼)
     public void ClosePanel()
     {
-        // 리셋 중이면 못 나감 (손 묶임) — 오디오/카메라 어느 쪽이든
+        // 리셋 중이면 못 나감 (손 묶임) — 오디오/카메라/환기 어느 쪽이든
         if (audioSystem != null && audioSystem.IsResetting())
         {
             Debug.Log("오디오 리셋 중 - 패널 못 나감");
@@ -107,6 +110,11 @@ public class PanelController : MonoBehaviour
         if (cameraSystem != null && cameraSystem.IsResetting())
         {
             Debug.Log("카메라 리셋 중 - 패널 못 나감");
+            return;
+        }
+        if (ventSystem != null && ventSystem.IsResetting())
+        {
+            Debug.Log("환기 리셋 중 - 패널 못 나감");
             return;
         }
 
@@ -120,11 +128,12 @@ public class PanelController : MonoBehaviour
         SetButtons(false);
     }
 
-    // 전체 리셋 버튼이 호출 — 오디오+카메라 동시 시작(§12.3 "둘 8s", 고장 여부 무관 예방적 가능)
+    // 전체 리셋 버튼이 호출 — 오디오+카메라+환기 동시 시작(8초, 고장 여부 무관 예방적 가능)
     public void ResetAll()
     {
         if (audioSystem != null) audioSystem.StartResetFor(resetAllDuration);
         if (cameraSystem != null) cameraSystem.StartResetFor(resetAllDuration);
+        if (ventSystem != null) ventSystem.StartResetFor(resetAllDuration);
     }
 
     // 점프스케어 등으로 강제 취소

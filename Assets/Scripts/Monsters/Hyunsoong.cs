@@ -43,6 +43,9 @@ public class Hyunsoong : MonoBehaviour
     public float gazeDrainSpeed = 2f;  // 놓쳤을 때 초당 감소(빠르게)
     public float gazeRequired = 4f;    // 필요 누적량
 
+    [Header("armed 발동 (§14 변형 — 화면 전환 즉시 OR 자동)")]
+    public float armedAutoDelay = 5f;  // armed 후 아무것도 안 해도 이 시간 지나면 자동 STRIKE1
+
     [Header("엔진B 확률 이동")]
     public float cycleTime = 5f;    // 판정 주기(초). 2배 느리게 하려면 늘려
     public int aiLevel = 3;         // AI 레벨 (1밤=3). rand(0~19) < aiLevel 이면 이동
@@ -55,7 +58,7 @@ public class Hyunsoong : MonoBehaviour
     [Header("참조")]
     public CCTVController cctv;         // CCTV 내림 여부 확인용
     public MonitorDisplay monitor;   // 스태틱 요청용
-    public ScreenTransitionDetector transitionDetector;
+    public ScreenTransitionDetector transitionDetector;   // armed 중 화면 전환 = 즉시 STRIKE1
     public JumpscareOverlay jumpscare;
     public AudioSystem audioSystem;
 
@@ -72,6 +75,7 @@ public class Hyunsoong : MonoBehaviour
     private float walkTimer = 0f;       // 워크패스 경과
     private float gazeGauge = 0f;       // 응시 누적
     private bool beingGazed = false;    // 지금 GazeBox가 닿아있나 (Trigger가 갱신)
+    private float armedTimer = 0f;      // armed 후 경과
 
     void Start()
     {
@@ -83,7 +87,7 @@ public class Hyunsoong : MonoBehaviour
         if (transitionDetector == null) transitionDetector = FindAnyObjectByType<ScreenTransitionDetector>();
         if (jumpscare == null) jumpscare = FindAnyObjectByType<JumpscareOverlay>();
 
-        // 화면 전환 방송 구독 (§0.5)
+        // 화면 전환 방송 구독 — armed 중이면 즉시 STRIKE1
         if (transitionDetector != null)
             transitionDetector.OnScreenTransition += HandleScreenTransition;
     }
@@ -100,6 +104,7 @@ public class Hyunsoong : MonoBehaviour
         {
             case State.Moving: UpdateMoving(); break;
             case State.WalkPath: UpdateWalkPath(); break;
+            case State.Armed: UpdateArmed(); break;
         }
     }
 
@@ -237,8 +242,29 @@ public class Hyunsoong : MonoBehaviour
         else if (walkTimer >= walkPathTime)
         {
             state = State.Armed;
-            Debug.Log("현승 ARMED (다음 화면 전환 시 STRIKE1)");
+            armedTimer = 0f;
+            Debug.Log($"현승 ARMED (화면 전환 시 즉시 / 안 해도 {armedAutoDelay:F0}초 뒤 STRIKE1)");
         }
+    }
+
+    // --- armed: 둘 중 먼저 오는 쪽으로 STRIKE1 ---
+    //  ① 화면 전환(CCTV·패널 올림/내림, 환기 흐려짐) → 즉시 (HandleScreenTransition)
+    //  ② 아무것도 안 해도 armedAutoDelay 지나면 자동 → "가만히 버티면 안 터지는" 구멍 없음
+    // CCTV/패널 보고 있었으면 jumpscare.Play()가 강제로 정면 복귀시킴.
+    void UpdateArmed()
+    {
+        armedTimer += Time.deltaTime;
+        if (armedTimer >= armedAutoDelay)
+        {
+            Debug.Log("현승 armed 시간 초과 → 자동 STRIKE1");
+            Strike1();
+        }
+    }
+
+    void HandleScreenTransition()
+    {
+        if (state == State.Armed)
+            Strike1();
     }
 
     void Disappear()
@@ -304,11 +330,5 @@ public class Hyunsoong : MonoBehaviour
     public void SetGazed(bool value)
     {
         beingGazed = value;
-    }
-
-    void HandleScreenTransition()
-    {
-        if (state == State.Armed)
-            Strike1();
     }
 }

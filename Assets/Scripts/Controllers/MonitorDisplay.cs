@@ -20,6 +20,13 @@ public class MonitorDisplay : MonoBehaviour
 
     [Header("창고 카메라 (CAM07 — 화면 안 보임, 소리만)")]
     public int storageRoomIndex = 6;   // roomFeeds 기준 [6]=창고
+    // 일반 스태틱(전환/고장)과 구분되는 전용 화면: 거의 검은 바탕 + 드문드문 먼지 점
+    [Range(0, 255)] public int storageBaseMin = 4;          // 바탕 밝기 범위 (거의 검정, 미세하게 일렁임)
+    [Range(0, 255)] public int storageBaseMax = 18;
+    [Range(0f, 0.05f)] public float storageSpeckChance = 0.006f;  // 픽셀 하나가 먼지 점일 확률 (클수록 많음)
+    [Range(0, 255)] public int storageSpeckMin = 70;        // 먼지 점 밝기 범위
+    [Range(0, 255)] public int storageSpeckMax = 190;
+    public float storageInterval = 0.08f;                   // 화면 갱신 간격 (클수록 느리게 깜빡)
 
     [Header("스태틱 설정")]
     public int staticSize = 128;
@@ -34,6 +41,10 @@ public class MonitorDisplay : MonoBehaviour
     private float staticTimer = 0f;
     private float switchTimer = 0f;
 
+    private Texture2D storageTex;        // CAM07 전용 화면
+    private Color32[] storagePixels;
+    private float storageTimer = 0f;
+
     void Start()
     {
         monitorMat = GetComponent<Renderer>().material;
@@ -41,8 +52,15 @@ public class MonitorDisplay : MonoBehaviour
         staticTex.filterMode = FilterMode.Point;
         pixels = new Color32[staticSize * staticSize];
 
+        storageTex = new Texture2D(staticSize, staticSize);
+        storageTex.filterMode = FilterMode.Point;
+        storagePixels = new Color32[staticSize * staticSize];
+        GenerateStorageStatic();   // 처음 들어갔을 때 빈 화면 안 보이게 미리 한 장
+
         if (cctv == null)
             cctv = FindAnyObjectByType<CCTVController>();
+        if (cameraSystem == null)
+            cameraSystem = FindAnyObjectByType<CameraSystem>();   // Inspector 연결 안 해도 작동 (연결 누락으로 고장 화면이 안 뜬 적 있음)
 
         ApplyButtonState();  // 시작 시 버튼 상태 반영
     }
@@ -67,9 +85,9 @@ public class MonitorDisplay : MonoBehaviour
                 ShowStatic();               // 둘 다 스태틱 표시
                 break;
             case State.Active:
-                // 창고(CAM07)는 언제나 화면이 안 보임 — 소리만(Phase 8 사운드 연결 예정)
+                // 창고(CAM07)는 언제나 화면이 안 보임 — 전용 어두운 먼지 화면 + 소리만(Phase 8 사운드 연결 예정)
                 if (currentRoom == storageRoomIndex)
-                    ShowStatic();
+                    ShowStorageStatic();
                 else
                     ShowRoom();
                 break;
@@ -193,6 +211,32 @@ public class MonitorDisplay : MonoBehaviour
         }
         staticTex.SetPixels32(pixels);
         staticTex.Apply();
+    }
+
+    // === CAM07 전용 화면 (거의 검은 바탕 + 드문드문 먼지 점) ===
+    void ShowStorageStatic()
+    {
+        storageTimer += Time.deltaTime;
+        if (storageTimer >= storageInterval)
+        {
+            GenerateStorageStatic();
+            storageTimer = 0f;
+        }
+        monitorMat.mainTexture = storageTex;
+    }
+
+    void GenerateStorageStatic()
+    {
+        for (int i = 0; i < storagePixels.Length; i++)
+        {
+            int v = Random.Range(storageBaseMin, storageBaseMax + 1);          // 바탕: 거의 검정
+            if (Random.value < storageSpeckChance)
+                v = Random.Range(storageSpeckMin, storageSpeckMax + 1);        // 가끔 먼지 점
+            byte b = (byte)Mathf.Clamp(v, 0, 255);
+            storagePixels[i] = new Color32(b, b, b, 255);
+        }
+        storageTex.SetPixels32(storagePixels);
+        storageTex.Apply();
     }
 
     public void RingBellCurrentRoom()
