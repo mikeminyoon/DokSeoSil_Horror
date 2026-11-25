@@ -54,6 +54,9 @@ public class VentilationSystem : MonoBehaviour
         if (transitionDetector == null) transitionDetector = FindAnyObjectByType<ScreenTransitionDetector>();
         if (blurOverlay == null) blurOverlay = CreateBlurOverlay();
         blurOverlay.alpha = 0f;
+
+        // 환기 오류 경보(경고등 + 사이렌) — 없으면 자동으로 붙임
+        if (FindAnyObjectByType<VentAlarm>() == null) gameObject.AddComponent<VentAlarm>();
     }
 
     void Update()
@@ -115,7 +118,7 @@ public class VentilationSystem : MonoBehaviour
         if (shutter != null) shutter.SetForcedOpen(true);
         Debug.Log($"★★ 환기 오류! ({reason}) — 셔터 강제 개방, 주기적 흐려짐. 리셋 필요");
         // 연호 흉포는 YeonhoAggression이 "환기 오류 중" 상태를 보고 자동으로 켬
-        // TODO: 경보/사이렌 (Phase 8 / 고장 알림 설계)
+        // 경보(경고등 + 사이렌)는 VentAlarm이 "환기 오류 중" 상태를 보고 자동으로 켬
     }
 
     // === 흐려짐 연출 (임시: 검은 화면) ===
