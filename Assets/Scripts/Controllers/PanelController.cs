@@ -36,6 +36,21 @@ public class PanelController : MonoBehaviour
     private Quaternion homeLocalRot;
 
     private bool returning = false;
+    private bool resetAllActive = false;    // 전체 리셋 버튼으로 시작한 리셋이 진행 중
+
+    // 전체 리셋 진행 중인가 (ResetPanelMenu가 "reboot all" 옆에만 rebooting 띄울 때 씀)
+    public bool IsResettingAll => resetAllActive;
+
+    // 리셋은 한 번에 하나만 (원작 FNAF3 정비 패널 규칙) — 개별이든 전체든 진행 중이면 다른 리셋 버튼은 안 먹힘.
+    // 각 시스템의 StartReset()이 이걸 보고 거절함.
+    public bool IsBusy => AnySystemResetting();
+
+    bool AnySystemResetting()
+    {
+        return (audioSystem != null && audioSystem.IsResetting())
+            || (cameraSystem != null && cameraSystem.IsResetting())
+            || (ventSystem != null && ventSystem.IsResetting());
+    }
 
     void Start()
     {
@@ -55,6 +70,9 @@ public class PanelController : MonoBehaviour
 
     void Update()
     {
+        // 전체 리셋: 세 시스템 리셋이 다 끝나면 표시 해제
+        if (resetAllActive && !AnySystemResetting()) resetAllActive = false;
+
         if (!isPanelOpen && !returning)
         {
             if (!inputLocked && viewController.enabled && viewController.currentZone == panelZone)
@@ -143,9 +161,17 @@ public class PanelController : MonoBehaviour
     // 전체 리셋 버튼이 호출 — 오디오+카메라+환기 동시 시작(8초, 고장 여부 무관 예방적 가능)
     public void ResetAll()
     {
+        if (IsBusy)
+        {
+            Debug.Log("리셋 진행 중 — 끝나야 전체 리셋 가능 (한 번에 하나)");
+            // TODO: 거부음 (Phase 8)
+            return;
+        }
+
         if (audioSystem != null) audioSystem.StartResetFor(resetAllDuration);
         if (cameraSystem != null) cameraSystem.StartResetFor(resetAllDuration);
         if (ventSystem != null) ventSystem.StartResetFor(resetAllDuration);
+        if (AnySystemResetting()) resetAllActive = true;
     }
 
     // 점프스케어 등으로 강제 취소

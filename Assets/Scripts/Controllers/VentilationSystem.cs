@@ -160,6 +160,14 @@ public class VentilationSystem : MonoBehaviour
     // 개별 리셋 (패널 버튼 OnClick) — ⚠️ 버튼용이라 매개변수 붙이지 말 것
     public void StartReset()
     {
+        // 리셋은 한 번에 하나만 (원작 정비 패널 규칙) — 다른 리셋(개별·전체)이 진행 중이면 안 먹힘
+        var panel = FindAnyObjectByType<PanelController>();
+        if (panel != null && panel.IsBusy)
+        {
+            Debug.Log("다른 리셋 진행 중 — 환기 리셋은 끝난 뒤에 (한 번에 하나)");
+            // TODO: 거부음 (Phase 8)
+            return;
+        }
         StartResetFor(resetDuration);
     }
 

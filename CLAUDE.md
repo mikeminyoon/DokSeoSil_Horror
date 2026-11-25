@@ -136,6 +136,7 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 - **PanelController.cs**: 동일하게 homeLocalPos 방식. 왼쪽 구역 가면 자동으로 패널 열림.
   - `ClosePanel()`(Exit 버튼): **오디오든 카메라든 리셋 중이면 못 나감**(손 묶임).
   - `ResetAll()`(전체 리셋 버튼): 오디오+카메라+환기 동시, `resetAllDuration` 8초.
+  - **리셋은 한 번에 하나만**(원작 규칙): `IsBusy` = 아무 시스템이나 리셋 중. 진행 중이면 각 시스템 `StartReset()`·`ResetAll()`이 거절. `IsResettingAll` = 전체 리셋으로 시작한 리셋 진행 중(메뉴가 reboot all 옆에만 rebooting 표시).
   - 참조: audioSystem, cameraSystem, ventSystem — 비어 있으면 Start에서 자동으로 찾음(연결 누락으로 잠금·고장 화면이 조용히 안 된 적 있어서 바꿈).
 - **ViewController.cs**: 4구역, 구역별 microYaw/microPitch 배열화, SuppressEdgeUntilRelease. `currentZone` public.
 - **ScreenTransitionDetector.cs**: CCTV 올림/내림 + 패널 열기/닫기 → `OnScreenTransition` 이벤트. `ForceTransition()`(환기 오류용). 시야 회전은 전환 아님.
@@ -172,7 +173,7 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
   - **World Space** = 3D 오브젝트에 붙은 정보/장치(배터리, 비상 종).
   - **Screen Overlay** = 플레이어 조작(셔터·라이트·패널 버튼·**CCTV 방 버튼** — 실제 씬 확인 결과 CCTV 버튼도 Overlay. 예전 문서엔 World로 잘못 적혀 있었음).
   - 씬 구조: 3D 장면은 저해상도 RT → Overlay `Canvas`의 전체화면 `RawImage`로 표시. 같은 `Canvas`에 CCTV/PANEL/Vent 버튼 묶음과 JumpscareOverlay가 있음. World 캔버스는 `WorldCanvas`(배터리, CCTV_Screen 자식)와 `EmergencyBellWorldCanvas`(이벤트 카메라 = UIRayCamera)뿐.
-  - **진행 중(2026-11-25):** 패널 버튼을 World Space로 옮기는 중(FNAF3식 시스템 리셋 메뉴 — 패널이 열리면 카메라가 고정돼서 World 클릭이 안정적이고, 저해상도 필터도 같이 받음). 방법: `EmergencyBellWorldCanvas` 복제 → `PanelWorldCanvas`, 부모는 SecurityRoom(ResetPanel 계열은 비균일 스케일이라 자식으로 넣으면 글자 찌그러짐). 패널용 태블릿 모델 `Assets/ObjectAssets/tablet`(에셋 스토어 무료 패키지, 스크립트는 우리 게임에 불필요).
+  - **리셋 패널 (구현노트 §15.16):** `ResetPanelWorldCanvas`(World, 이벤트 카메라 UIRayCamera, Canvas Group = PanelController.panelButtons) + **패널 글자만 고해상도** 전용 카메라 `PanelUI_Camera`(PanelUI 레이어만 → `PanelUIRT` 1440×1080 → `RawImageHIgh`, 항상 켜둠, HDR·MSAA 끔은 씬 파일에서) + `ResetPanelMenu`(>>> 커서 / error·rebooting 깜빡, 이름으로 자동 연결). 태블릿 모델은 에셋 스토어 무료 패키지(스크립트는 불필요, 사용 중단 API 경고 남).
 
 ### 4.11 ⭐ 연호 (Yeonho.cs) — 엔진A, 메인 빌런 (이 프로젝트의 핵심)
 
@@ -296,7 +297,7 @@ move_counter > 임계값 → 행동 굴림
 ### 바로 할 수 있는 것
 1. ~~배터리 방전 → 연호 점프스케어~~ → 완료(4.15 방전 암전 시퀀스).
 2. ~~현승 §14 자동 발동~~ → 완료(화면 전환 즉시 OR 5초 자동, 구현노트 §15.10). 알려진 모서리: 패널 리셋 중 STRIKE1이면 패널이 안 닫힌 채 점프스케어 종료 — 테스트 때 확인.
-3. **고장 알림 설계 (오디오/카메라)** — 지금 로그뿐이라 플레이어가 고장을 모름(오디오는 32초 안에 못 고치면 죽는데!). 유저 아이디어: **FNAF3처럼 오디오 고장 시 경비실에 사이렌/경고.** 사운드+시각 경고 방식 설계 필요. 최소한 패널 임시 상태 표시("AUDIO: OK/ERROR/RESETTING")도 후보.
+3. **고장 알림** — 패널 FNAF3식 메뉴(error·rebooting 깜빡, >>> 커서)는 1차 완료(§15.16). **남은 것: 환기 오류 경보(빨간 경고등 + 사이렌) — 환기에만(원작대로, 유저 결정).**
 
 ### 밸런스
 4. **밤 곡선 튜닝** — 구조(밤별 배열)와 기획서 AI는 넣음(4·§15.15). 남은 것: 숫자 미정인 배열 채우기(현승 워크패스, 김욱 노출, 준영 유예, 오디오 퍼펫 시간), windowFrontTime(약 12s), 비상 종(2회/60s), 현승 fixedNodeWaits, 카메라 에러 확률 — 직접 플레이하며 조정. 1일차 "12~1시 정적·4~6시 잔잔" 시퀀스도 아직.

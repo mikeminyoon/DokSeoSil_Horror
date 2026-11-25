@@ -73,6 +73,14 @@ public class AudioSystem : MonoBehaviour
     // ⚠️ 버튼 OnClick은 매개변수 없는 함수만 찾으므로 여기엔 매개변수를 붙이지 말 것.
     public void StartReset()
     {
+        // 리셋은 한 번에 하나만 (원작 정비 패널 규칙) — 다른 리셋(개별·전체)이 진행 중이면 안 먹힘
+        var panel = FindAnyObjectByType<PanelController>();
+        if (panel != null && panel.IsBusy)
+        {
+            Debug.Log("다른 리셋 진행 중 — 오디오 리셋은 끝난 뒤에 (한 번에 하나)");
+            // TODO: 거부음 (Phase 8)
+            return;
+        }
         StartResetFor(resetDuration);
     }
 
