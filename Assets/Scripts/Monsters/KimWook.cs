@@ -165,7 +165,7 @@ public class KimWook : MonoBehaviour
         Leave();
         if (jumpscare != null) jumpscare.Play();        // CCTV/패널 강제 닫힘 → 그게 화면 전환이라 연호·현승 연쇄
         if (vent != null) vent.BreakVent("김욱");
-        // TODO: 연호 흉포 ON (흉포 토글 만들 때)
+        // 연호 흉포는 YeonhoAggression이 "환기 오류 중" 상태를 보고 자동으로 켬
     }
 
     void SetVisible(bool on)

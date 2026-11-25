@@ -20503,6 +20503,7 @@ GameObject:
   - component: {fileID: 1923413581}
   - component: {fileID: 1923413585}
   - component: {fileID: 1923413586}
+  - component: {fileID: 1923413587}
   m_Layer: 0
   m_Name: yeono
   m_TagString: Untagged
@@ -20550,9 +20551,9 @@ MonoBehaviour:
   spawnDelayMin: 10
   spawnDelayMax: 25
   aiLevel: 5
-  weightForward: 80
-  weightRetreat: 5
-  weightStay: 15
+  weightForward: 65
+  weightRetreat: 8
+  weightStay: 27
   windowFrontTime: 12.39
   bellCooldown: 5.4
   bellDrain: 2
@@ -20565,6 +20566,7 @@ MonoBehaviour:
   transitionDetector: {fileID: 1758782158}
   jumpscare: {fileID: 1807153954}
   audioSystem: {fileID: 0}
+  aggression: {fileID: 0}
 --- !u!114 &1923413586
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20585,6 +20587,34 @@ MonoBehaviour:
   cooldown: 60
   usesPerNight: 2
   inputLocked: 0
+--- !u!114 &1923413587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1923413580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74e538d476c84e81909cc3495bf9d46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::YeonhoAggression
+  furyMinDuration: 10
+  rollInterval: 15
+  randomDie: 20
+  furyHourStart: 5
+  furyHourEnd: 6
+  idleLimit: 20
+  roomSwitchCounts: 1
+  yeonho: {fileID: 1923413585}
+  audioSystem: {fileID: 1490514179}
+  vent: {fileID: 294077304}
+  viewController: {fileID: 1758782156}
+  monitor: {fileID: 976275387}
+  isAggressive: 0
+  reason: 
+  furyLeft: 0
+  idleTime: 0
 --- !u!1 &1936563070
 GameObject:
   m_ObjectHideFlags: 0
@@ -25834,8 +25864,8 @@ SceneRoots:
   - {fileID: 1957668161}
   - {fileID: 1404014114}
   - {fileID: 1490514180}
+  - {fileID: 381909545}
+  - {fileID: 294077305}
   - {fileID: 13774905}
   - {fileID: 1706893817}
-  - {fileID: 381909545}
   - {fileID: 627630001}
-  - {fileID: 294077305}

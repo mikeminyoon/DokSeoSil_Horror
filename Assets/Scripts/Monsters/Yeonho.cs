@@ -46,6 +46,7 @@ public class Yeonho : MonoBehaviour
     public ScreenTransitionDetector transitionDetector;
     public JumpscareOverlay jumpscare;
     public AudioSystem audioSystem;
+    public YeonhoAggression aggression;   // 흉포 토글 (비어 있으면 자동으로 찾고, 없으면 붙임)
 
     // 상태
     private enum State { Spawning, Moving, WindowFront, Peeking }
@@ -74,6 +75,8 @@ public class Yeonho : MonoBehaviour
         if (transitionDetector == null) transitionDetector = FindAnyObjectByType<ScreenTransitionDetector>();
         if (jumpscare == null) jumpscare = FindAnyObjectByType<JumpscareOverlay>();
         if (audioSystem == null) audioSystem = FindAnyObjectByType<AudioSystem>();
+        if (aggression == null) aggression = FindAnyObjectByType<YeonhoAggression>();
+        if (aggression == null) aggression = gameObject.AddComponent<YeonhoAggression>();   // 씬에 없으면 기본값으로 붙임
 
         if (transitionDetector != null)
             transitionDetector.OnScreenTransition += HandleScreenTransition;
@@ -134,8 +137,10 @@ public class Yeonho : MonoBehaviour
 
     void TickSecond()
     {
-        moveCounter += 1f;
-        int threshold = (10 - aiLevel) + Random.Range(1, 16) - totalTurns;
+        // 흉포: 카운터 2배(+2/초) + 판정 기준 -1 (기획서 §2.5 — 이동에만 영향, 종과 무관)
+        bool fury = aggression != null && aggression.IsAggressive;
+        moveCounter += fury ? 2f : 1f;
+        int threshold = (10 - aiLevel) - (fury ? 1 : 0) + Random.Range(1, 16) - totalTurns;
         if (moveCounter > threshold)
         {
             moveCounter = 0f;

@@ -10,7 +10,7 @@ using UnityEngine.UI;
 // [고장 효과]
 //  - 셔터 강제 개방 + 못 닫음 (질식 방지 안전장치) → 현우가 그 틈에 침투 가능
 //  - 주기적으로 화면이 어두워졌다 돌아옴 = 강제 화면 전환 (연호 창문앞→빼꼼, 빼꼼→즉사, 현승 armed→즉시 STRIKE1)
-//  - TODO: 연호 흉포 ON (흉포 토글 만들 때)
+//  - 연호 흉포: YeonhoAggression이 "환기 오류 중" 상태를 보고 자동으로 켬
 //
 // [리셋] 패널에서 5초 (고장 없어도 예방적으로 가능 — 공기 게이지 초기화)
 public class VentilationSystem : MonoBehaviour
@@ -114,7 +114,7 @@ public class VentilationSystem : MonoBehaviour
         blurTimer = firstBlurDelay;
         if (shutter != null) shutter.SetForcedOpen(true);
         Debug.Log($"★★ 환기 오류! ({reason}) — 셔터 강제 개방, 주기적 흐려짐. 리셋 필요");
-        // TODO: 연호 흉포 ON (흉포 토글 만들 때)
+        // 연호 흉포는 YeonhoAggression이 "환기 오류 중" 상태를 보고 자동으로 켬
         // TODO: 경보/사이렌 (Phase 8 / 고장 알림 설계)
     }
 

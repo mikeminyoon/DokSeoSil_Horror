@@ -171,7 +171,7 @@ public class JoonYoung : MonoBehaviour
         if (jumpscare != null) jumpscare.Play();   // 점프스케어 화면이 덮는 동안 숨김
         SetVisible(false);
         if (vent != null) vent.BreakVent("준영");
-        // TODO: 연호 흉포 ON (흉포 토글 만들 때)
+        // 연호 흉포는 YeonhoAggression이 "환기 오류 중" 상태를 보고 자동으로 켬
     }
 
     // 플레이어 화면에 안 보일 때만 켜고/끔. 성공하면 true.
