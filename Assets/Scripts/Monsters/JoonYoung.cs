@@ -22,7 +22,9 @@ public class JoonYoung : MonoBehaviour
     public float testChanceOverride = -1f;
 
     [Header("시간")]
-    public float graceTime = 5f;              // 드러난 뒤 CCTV 올릴 때까지 유예
+    [Tooltip("밤별 유예(초) — 드러난 뒤 CCTV 올릴 때까지. [0]은 안 쓰는 칸. 기획서: 3일 김 → 5일 짧음 (숫자 미정이라 지금 값 5초로 채움)")]
+    public float[] graceTimeByNight = { 0f, 5f, 5f, 5f, 5f, 5f };
+    float GraceTime => GameManager.ByNight(graceTimeByNight);
     public float restAfterDodgeMin = 20f;     // 피한 뒤 주사위 안 굴리는 시간
     public float restAfterDodgeMax = 30f;
 
@@ -93,8 +95,8 @@ public class JoonYoung : MonoBehaviour
                 if (loweredNow)
                 {
                     state = State.Revealed;
-                    graceLeft = graceTime;
-                    Debug.Log($"★ 준영 드러남 (관리실 구석) — {graceTime:F0}초 안에 CCTV 켜야 함");
+                    graceLeft = GraceTime;
+                    Debug.Log($"★ 준영 드러남 (관리실 구석) — {GraceTime:F0}초 안에 CCTV 켜야 함");
                 }
                 break;
 
@@ -131,8 +133,7 @@ public class JoonYoung : MonoBehaviour
 
     float ChanceForTonight()
     {
-        int night = Mathf.Clamp(GameManager.Night, 0, chanceByNight.Length - 1);
-        return chanceByNight[night];
+        return GameManager.ByNight(chanceByNight);
     }
 
     void UpdateRevealed()

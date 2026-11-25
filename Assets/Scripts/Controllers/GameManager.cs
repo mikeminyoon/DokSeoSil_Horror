@@ -11,6 +11,30 @@ public class GameManager : MonoBehaviour
     // GameManager가 없는 테스트 씬이면 1일차로 취급.
     public static int Night => (Instance != null) ? Instance.currentNight : 1;
 
+    // ⭐ 밤별 배열에서 이번 밤 값 꺼내기 — 모든 귀신·시스템이 이것만 씀 (각자 계산하지 말 것)
+    // 배열 규칙: 인덱스 = 밤 숫자 그대로, [0]은 안 쓰는 칸, [1]~[5] = 1~5일. 배열이 짧으면 마지막 칸 값.
+    public static int ByNight(int[] arr)
+    {
+        if (arr == null || arr.Length == 0) return 0;
+        return arr[Mathf.Clamp(Night, 0, arr.Length - 1)];
+    }
+    public static float ByNight(float[] arr)
+    {
+        if (arr == null || arr.Length == 0) return 0f;
+        return arr[Mathf.Clamp(Night, 0, arr.Length - 1)];
+    }
+
+    // 게임 시각을 0~6으로 (12시 = 0, 1~5시 그대로, 밤 끝 = 6). 시간대 판정은 이걸 쓸 것.
+    public static int Hour
+    {
+        get
+        {
+            if (Instance == null) return 0;
+            if (Instance.isNightOver) return 6;
+            return (Instance.gameHour == 12) ? 0 : Instance.gameHour;
+        }
+    }
+
     [Header("밤 설정")]
     public int currentNight = 1;           // 지금 몇 밤 (수동, 나중에 저장 시스템으로) — 테스트할 밤은 여기서만 바꿈
     public float nightDuration = 390f;     // 밤 길이 (6분 30초)

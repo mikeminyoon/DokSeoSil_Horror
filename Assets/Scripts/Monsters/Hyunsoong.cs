@@ -36,7 +36,12 @@ public class Hyunsoong : MonoBehaviour
     [Header("창문 워크패스")]
     public Transform windowStart;      // 창문 왼쪽 끝
     public Transform windowEnd;        // 창문 오른쪽 끝
-    public float walkPathTime = 6f;    // 워크패스 총 시간(빡세게 6초)
+    [Tooltip("밤별 워크패스 총 시간(초) = 응시 대응 시간. [0]은 안 쓰는 칸. 기획서: 1일 김 → 5일 가장 짧음 (숫자 미정이라 지금 값 6초로 채움)")]
+    public float[] walkPathTimeByNight = { 0f, 6f, 6f, 6f, 6f, 6f };
+
+    [Header("1일차 확정 출현 (기획서 §7 — 모든 플레이어가 응시를 한 번은 배움)")]
+    public int guaranteeNight = 1;     // 이 밤엔
+    public int guaranteeHour = 3;      // 이 시까지 창문에 한 번도 안 왔으면 → 창문으로 바로 보냄
 
     [Header("응시 게이지")]
     public float gazeFillSpeed = 1f;   // 응시 중 초당 채움
@@ -46,9 +51,17 @@ public class Hyunsoong : MonoBehaviour
     [Header("armed 발동 (§14 변형 — 화면 전환 즉시 OR 자동)")]
     public float armedAutoDelay = 5f;  // armed 후 아무것도 안 해도 이 시간 지나면 자동 STRIKE1
 
-    [Header("엔진B 확률 이동")]
-    public float cycleTime = 5f;    // 판정 주기(초). 2배 느리게 하려면 늘려
-    public int aiLevel = 3;         // AI 레벨 (1밤=3). rand(0~19) < aiLevel 이면 이동
+    [Header("엔진B 확률 이동 — 밤별 (인덱스 = 밤 숫자, [0]은 안 쓰는 칸)")]
+    [Tooltip("기획서 §8: 1일 3 / 2일 5 / 3일 8 / 4일 11 / 5일 14. rand(0~19) < AI 이면 이동. 0 = 비활성")]
+    public int[] aiByNight = { 0, 3, 5, 8, 11, 14 };
+    [Tooltip("기획서 §8 이동판정 간격: 1일 8초 → 5일 4초")]
+    public float[] cycleTimeByNight = { 0f, 8f, 7f, 6f, 5f, 4f };
+    [Tooltip("테스트용: 0 이상이면 밤 상관없이 이 AI 사용. -1 = 끔(평소)")]
+    public int testAiOverride = -1;
+
+    public int AI => (testAiOverride >= 0) ? testAiOverride : GameManager.ByNight(aiByNight);
+    float CycleTime => GameManager.ByNight(cycleTimeByNight);
+    float WalkPathTime => GameManager.ByNight(walkPathTimeByNight);
 
     [Header("행동 굴림 가중치")]
     public int weightForward = 85;   // 전진
@@ -76,6 +89,7 @@ public class Hyunsoong : MonoBehaviour
     private float gazeGauge = 0f;       // 응시 누적
     private bool beingGazed = false;    // 지금 GazeBox가 닿아있나 (Trigger가 갱신)
     private float armedTimer = 0f;      // armed 후 경과
+    private bool walkedTonight = false; // 오늘 밤 창문 워크패스 한 번이라도 했나 (1일차 확정 출현용)
 
     void Start()
     {
@@ -100,6 +114,10 @@ public class Hyunsoong : MonoBehaviour
 
     void Update()
     {
+        if (AI <= 0) return;   // AI 0 = 비활성 (오늘 밤 안 나옴)
+
+        CheckGuarantee();
+
         switch (state)
         {
             case State.Moving: UpdateMoving(); break;
@@ -143,14 +161,26 @@ public class Hyunsoong : MonoBehaviour
                 return;
             }
 
-            if (timer >= cycleTime)
+            if (timer >= CycleTime)
             {
                 timer = 0f;
                 int roll = Random.Range(0, 20);
-                if (roll < aiLevel)
+                if (roll < AI)
                     DoActionRoll();
             }
         }
+    }
+
+    // 1일차 확정 출현: 정해진 시까지 창문에 한 번도 안 왔으면 창문 바로 앞(마지막 노드)으로 보냄 (스태틱 → 곧 워크패스)
+    void CheckGuarantee()
+    {
+        if (walkedTonight || state != State.Moving) return;
+        if (GameManager.Night != guaranteeNight || GameManager.Hour < guaranteeHour) return;
+        if (nodes == null || nodes.Length == 0) return;
+
+        Debug.Log($"★ 현승 1일차 확정 출현 ({guaranteeHour}시까지 창문에 안 와서 창문으로 보냄)");
+        isLurking = false;
+        MoveToNode(nodes.Length - 1);   // 다음 프레임 UpdateMoving이 워크패스 시작
     }
 
     // 그날 허용된 루트 중 하나를 랜덤 선택
@@ -217,12 +247,13 @@ public class Hyunsoong : MonoBehaviour
         state = State.WalkPath;
         walkTimer = 0f;
         gazeGauge = 0f;
+        walkedTonight = true;
     }
 
     void UpdateWalkPath()
     {
         walkTimer += Time.deltaTime;
-        float t = walkTimer / walkPathTime;
+        float t = walkTimer / WalkPathTime;
         if (windowStart != null && windowEnd != null)
             transform.position = Vector3.Lerp(windowStart.position, windowEnd.position, t);
 
@@ -239,7 +270,7 @@ public class Hyunsoong : MonoBehaviour
         {
             Disappear();
         }
-        else if (walkTimer >= walkPathTime)
+        else if (walkTimer >= WalkPathTime)
         {
             state = State.Armed;
             armedTimer = 0f;

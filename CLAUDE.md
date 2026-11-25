@@ -99,10 +99,12 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 
 > 모든 코드는 씬의 해당 오브젝트에 부착. 아래는 각 스크립트의 역할·핵심 로직·주의점.
 > ⭐ **밤 숫자 규칙:** 밤 숫자는 `GameManager.currentNight` 한 곳에만 있다. 다른 스크립트는 **자기 currentNight 필드를 만들지 말고 `GameManager.Night`를 읽을 것.** 테스트할 밤은 GameManager Inspector에서만 바꿈.
+> ⭐ **밤별 값 규칙 (구현노트 §15.15):** 밤별 값은 `[0]` 안 쓰는 칸 + `[1]~[5]` 배열, 꺼낼 땐 **`GameManager.ByNight(배열)`만**, 시간대는 **`GameManager.Hour`(0~6, 12시=0)**만. **AI 0 = 비활성**(등장 날짜 칸을 따로 두지 않음). 귀신마다 `testAiOverride`(-1 = 끔)로 밤 상관없이 테스트. 새 귀신·시스템도 이 규칙을 따를 것.
 
 ### 4.1 현승 (Hyunsoong.cs) — COMPLETE, 엔진B
 - 루트 R1/R2/R4/R1'(로비 잠복) + **허공 등장 노드**(fixedNodeCount=3, fixedNodeWaits 배열 [허공10~30, 착석10~20, 기립3~7]). 노드0(허공)은 스태틱 X, index>0만.
 - 루트 해금은 `GameManager.Night`: 1밤 R1 / 2밤~ +R2·R4 / 3밤~ +R1'.
+- 밤별: `aiByNight` {0,3,5,8,11,14}, `cycleTimeByNight` {0,8,7,6,5,4}(기획서), `walkPathTimeByNight` 6초(미정). **1일차 확정 출현:** 3시까지 창문에 안 왔으면 창문으로 보냄(`guaranteeNight/Hour`).
 - 엔진B(cycleTime마다 rand<aiLevel 전진) + 행동 굴림(85/10/5) + 창문 워크패스 + GazeBox.
 - **STRIKE1**(비즉사, 오디오 고장 — 1일차는 점프스케어만) → **STRIKE2**(즉사, 퍼펫 — AudioSystem이 방치 32초 후 호출). STRIKE2에서 `GameManager.GameOver("현승퍼펫")` + `jumpscare.PlayGameOver()`.
 - **armed 발동 = 둘 중 먼저 오는 쪽** (§14 원안 "자동만"을 유저가 변경, 구현노트 §15.10): ① 화면 전환 시 즉시(HandleScreenTransition 구독 유지) ② 안 해도 `armedAutoDelay` 5초 뒤 자동. CCTV/패널 보고 있었으면 jumpscare.Play()가 강제로 닫고, 그 CCTV 강제 다운이 화면 전환이라 연호 캐스케이드가 생김.
@@ -116,6 +118,7 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
   - 셔터 열면 holdTimer 리셋 + 침투 재개. 침투 만료 → **BecomeArmed**.
   - armed: `armedRecognizeDelay`(1s) 후 시야가 ventZone(2) 벗어나면 즉시 당함 / `armedGrace`(6s) 초과 자동 당함 → GetHit(스택+1).
   - **격퇴와 armed가 똑같이 보임**(쿵쿵+빈 환풍구) = 심리전.
+- 밤별 `aiByNight` {0,0,5,6,10,13} (1일 비활성). **5시 퇴장**(`leaveHour`, 이동 중일 때 허공으로). **2일차는 스택 대신 배터리 -15**(`stackFromNight` 3, `earlyNightBatteryCost`).
 - **stackCount** 현우 내부 카운터. 지금은 **스택 숫자 + 빨간 잔상만** — 스택별 효과(1 조명깜빡 / 2 조명나감 / 3 정전) 미구현. 3스택 → 정전 로그만.
 - 2스택 효과는 원래 "CCTV 노이즈"였으나 카메라 에러와 겹쳐서 **"조명 나감"으로 변경됨**(구현노트 §12.2).
 - **Animator PoseNode(Integer)**: 1=Sit, 2=Hanging, 4=InVent(크롤링 변형). AnyState 전환, MoveToNode에서 `SetInteger("PoseNode", index)`.
@@ -166,8 +169,10 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 ### 4.10 BatteryDisplay.cs — COMPLETE
 - **World Space Canvas** 텍스트, 모니터에 부착. `cctv.isCameraDown`일 때만 표시.
 - ⭐ **UI 철학 (유저가 스스로 도출):**
-  - **World Space** = 3D 오브젝트에 붙은 정보/장치(배터리, CCTV 방 전환 버튼, 비상 종).
-  - **Screen Overlay** = 플레이어 조작(셔터·라이트·패널 버튼).
+  - **World Space** = 3D 오브젝트에 붙은 정보/장치(배터리, 비상 종).
+  - **Screen Overlay** = 플레이어 조작(셔터·라이트·패널 버튼·**CCTV 방 버튼** — 실제 씬 확인 결과 CCTV 버튼도 Overlay. 예전 문서엔 World로 잘못 적혀 있었음).
+  - 씬 구조: 3D 장면은 저해상도 RT → Overlay `Canvas`의 전체화면 `RawImage`로 표시. 같은 `Canvas`에 CCTV/PANEL/Vent 버튼 묶음과 JumpscareOverlay가 있음. World 캔버스는 `WorldCanvas`(배터리, CCTV_Screen 자식)와 `EmergencyBellWorldCanvas`(이벤트 카메라 = UIRayCamera)뿐.
+  - **진행 중(2026-11-25):** 패널 버튼을 World Space로 옮기는 중(FNAF3식 시스템 리셋 메뉴 — 패널이 열리면 카메라가 고정돼서 World 클릭이 안정적이고, 저해상도 필터도 같이 받음). 방법: `EmergencyBellWorldCanvas` 복제 → `PanelWorldCanvas`, 부모는 SecurityRoom(ResetPanel 계열은 비균일 스케일이라 자식으로 넣으면 글자 찌그러짐). 패널용 태블릿 모델 `Assets/ObjectAssets/tablet`(에셋 스토어 무료 패키지, 스크립트는 우리 게임에 불필요).
 
 ### 4.11 ⭐ 연호 (Yeonho.cs) — 엔진A, 메인 빌런 (이 프로젝트의 핵심)
 
@@ -182,7 +187,8 @@ move_counter > 임계값 → 행동 굴림
 - **핵심:** Random(1~15)이 매초 임계값에 들어가 **예측 불가**. total_turns = 멈출수록 다음 행동 가속.
 - **거점 = 공부방2**. 환풍구 못 씀(몸집). 1단계는 L1만: 노드 = [공부방2, 가로복도, 로비, 세로복도]. **nodeRoomIndex = [1,2,4,5]**.
 - **등장:** 시간 로직(spawnDelay 10~25)으로 model SetActive 껐다 켜기. 엔진A와 완전 분리.
-- **행동 가중치:** weightForward 60 / Retreat 20 / Stay 20.
+- **밤별 AI** `aiByNight` {0,0,2,5,9,16} (1일 비활성). **행동 가중치 60 / 15 / 25**(유저 결정).
+- **2일차 맛보기:** 4시(`tasteHour`)부터 등장 대기 → 창문에서 종·비상 종으로 한 번 밀려나면 그날 퇴장.
 
 **대치 단계 (상태 enum: Spawning → Moving → WindowFront → Peeking):**
 - Moving(엔진A 방황) → 세로복도 끝에서 전진 → **WindowFront**(창문앞, 랜덤 후퇴 없음) → **Peeking**(빼꼼).
@@ -217,7 +223,7 @@ move_counter > 임계값 → 행동 굴림
 ### 4.12 AudioSystem.cs — COMPLETE (오디오 고장 + 리셋 + 종 횟수)
 - **고장 원인:** 현승 STRIKE1, 일반 종 밤당 횟수 초과. (비상 종은 무관)
 - **1일차는 고장 자체가 없음**(`noBreakUntilNight`=1) → 1일차 STRIKE1은 점프스케어만, STRIKE2 불가.
-- **방치 32초(`breakTimeLimit`) → 현승 STRIKE2 퍼펫 즉사.** 원인 무관(종 과사용 고장도). 의도됨 — FNAF2 퍼펫 느낌.
+- **방치 32초(`breakTimeLimitByNight`, 전부 32 — 기획서 10→5초는 너무 짧아서 유저가 늘림) → 현승 STRIKE2 퍼펫 즉사.** 원인 무관(종 과사용 고장도). 의도됨 — FNAF2 퍼펫 느낌.
 - **종 밤당 한도 `bellLimitByNight` = {0, 0, 5, 4, 3, 2}:** 인덱스 = 밤 숫자 그대로([0]은 안 쓰는 칸). **0 이하 = 무제한** → 1일 무제한 / 2일5 / 3일4 / 4일3 / 5일2. Inspector에선 Element 0부터 보여서 헷갈림 주의.
 - **리셋:** `StartReset()`(버튼용, 5초) / `StartResetFor(초)`(전체 리셋용). **고장 없어도 예방적으로 가능**, 완료 시 `bellUses = 0`(예방적 리셋 전략, 구현노트 §8.3).
 - 고장 알림이 아직 없음(로그뿐) → TODO(사이렌 검토).
@@ -256,7 +262,7 @@ move_counter > 임계값 → 행동 굴림
 - **한 번 본 뒤 직접 넘기거나 CCTV 끄면 그 자리에서 사라짐**(`seen` 플래그). 다른 귀신 스태틱·고장 중엔 피한 걸로 안 침(시간만 멈춤). 사라질 때 지직 없음(유저 결정 — "아직 있나?" 불안).
 - **카메라 렌즈 앞 실제 모델** 방식(CCTV가 실시간 렌더 텍스처라 CRT·조명을 같이 받음). 스크립트는 KimWook 모델에 직접 붙임 — 숨길 땐 렌더러만 끔.
 - 위치: 씬 `MovePoints/KW_MovePoint` 자식 6개. **이름 속 CAM 번호로 자동 정렬**(`camNodes` 비우면) — Hierarchy 순서(Quridor_D가 Bathroom보다 위)와 roomFeeds 순서가 달라서 이렇게 함.
-- 3일차~(`firstNight`). 방전 암전 정지 목록에 추가됨.
+- 밤별 `aiByNight` {0,0,0,3,5,7}(3일~, 숫자 임의), `exposureLimitByNight` 2초(미정). 방전 암전 정지 목록에 추가됨.
 
 ### 4.17 준영 (JoonYoung.cs) — 1차 구현 (팬텀 폭시, 구현노트 §15.13)
 - **창문 가리기 뺌** → **관리실 구석**(정면 시야 가장자리)에 진짜 모델(`JoonYoung`, 애니메이터 포함). 스크립트는 모델에 직접 붙임, 숨길 땐 렌더러만 끔, 모델은 제자리.
@@ -293,7 +299,7 @@ move_counter > 임계값 → 행동 굴림
 3. **고장 알림 설계 (오디오/카메라)** — 지금 로그뿐이라 플레이어가 고장을 모름(오디오는 32초 안에 못 고치면 죽는데!). 유저 아이디어: **FNAF3처럼 오디오 고장 시 경비실에 사이렌/경고.** 사운드+시각 경고 방식 설계 필요. 최소한 패널 임시 상태 표시("AUDIO: OK/ERROR/RESETTING")도 후보.
 
 ### 밸런스
-4. **밤 곡선 잡기** (유저가 시작 신호 줄 것) — 연호 aiLevel(2일1→5일16), windowFrontTime(약 12s 확인), 종 한도, 비상 종(2회/60s), 현승 fixedNodeWaits, 카메라 에러 확률 등.
+4. **밤 곡선 튜닝** — 구조(밤별 배열)와 기획서 AI는 넣음(4·§15.15). 남은 것: 숫자 미정인 배열 채우기(현승 워크패스, 김욱 노출, 준영 유예, 오디오 퍼펫 시간), windowFrontTime(약 12s), 비상 종(2회/60s), 현승 fixedNodeWaits, 카메라 에러 확률 — 직접 플레이하며 조정. 1일차 "12~1시 정적·4~6시 잔잔" 시퀀스도 아직.
 
 ### 귀신 마무리
 5. **현우 스택별 효과** — 1 조명깜빡+시야흐림 / 2 조명 나감(불빛 버튼 확인 방해) / 3 정전.

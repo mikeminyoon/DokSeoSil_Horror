@@ -5,11 +5,11 @@ using System.Text.RegularExpressions;
 //
 // 원작 팬텀 BB식 "기습형": 보던 화면에 끼어들고, 2초 안에 피하면 사라짐.
 //
-// [등장] 20초마다 주사위 rand(0~9) < aiLevel → 성공하면 등장 (지직 스태틱 한 번).
+// [등장] 20초마다 주사위 rand(0~9) < 밤별 AI → 성공하면 등장 (지직 스태틱 한 번).
 //        - CCTV 켜져 있으면 currentCamChance(50%) 확률로 "지금 보는 카메라"에 끼어듦
 //        - 아니면 CAM01~06 중 랜덤 (CAM07 창고는 화면이 원래 안 보여서 제외)
 //        실패하면 그 20초는 안 나옴 → 리듬을 읽을 수 없음.
-// [위험] 그 카메라 화면을 exposureLimit(2초) 보면 → 점프스케어(CCTV 강제로 내려감) + 환기 오류.
+// [위험] 그 카메라 화면을 밤별 노출 한계(지금 2초) 보면 → 점프스케어(CCTV 강제로 내려감) + 환기 오류.
 // [피함] 한 번 본 뒤 플레이어가 "직접" 다른 방으로 넘기거나 CCTV 끄면 → 그 자리에서 사라짐 (조용히).
 //        다른 귀신 때문에 지직거리는 동안은 피한 게 아님 → 시간만 잠깐 멈춤.
 // [안 마주침] 아무도 안 보면 다음 주사위 때 조용히 사라지거나 옮김 ("아직 있나?" 불안 유지 — 사라질 땐 지직 없음).
@@ -17,16 +17,19 @@ using System.Text.RegularExpressions;
 // KimWook 모델에 직접 붙임. 숨길 때는 오브젝트를 끄지 않고 렌더러만 끔(스크립트가 계속 돌아야 해서).
 public class KimWook : MonoBehaviour
 {
-    [Header("등장 밤")]
-    public int firstNight = 3;          // 3일차부터
-
-    [Header("엔진 B")]
+    [Header("엔진 B — 밤별 (인덱스 = 밤 숫자, [0]은 안 쓰는 칸)")]
+    [Tooltip("rand(0~9) < AI 이면 등장. 0 = 비활성. 기획서: 1~2일 비활성 / 3일 낮음 / 4일 보통 / 5일 높음 (숫자는 임의로 3/5/7)")]
+    public int[] aiByNight = { 0, 0, 0, 3, 5, 7 };
+    [Tooltip("테스트용: 0 이상이면 밤 상관없이 이 AI 사용. -1 = 끔(평소)")]
+    public int testAiOverride = -1;
+    public int AI => (testAiOverride >= 0) ? testAiOverride : GameManager.ByNight(aiByNight);
     public float cycleTime = 20f;       // 주사위 굴리는 간격 (고정)
-    public int aiLevel = 3;             // rand(0~9) < aiLevel 이면 등장 (3 = 30%) — 밤 곡선 때 조정
     [Range(0f, 1f)] public float currentCamChance = 0.5f;   // CCTV 켜져 있을 때 "지금 보는 카메라"에 끼어들 확률
 
-    [Header("노출")]
-    public float exposureLimit = 2f;    // 이만큼 보면 공격
+    [Header("노출 — 밤별")]
+    [Tooltip("이만큼 보면 공격(초). 기획서: 3일 김 → 5일 짧음 (숫자 미정이라 지금 값 2초로 채움)")]
+    public float[] exposureLimitByNight = { 0f, 2f, 2f, 2f, 2f, 2f };
+    float ExposureLimit => GameManager.ByNight(exposureLimitByNight);
 
     [Header("카메라 앞 위치")]
     [Tooltip("비워두면 nodeParent(없으면 'KW_MovePoint')의 자식들을 이름 속 CAM 번호로 자동 정렬해서 채움")]
@@ -63,7 +66,7 @@ public class KimWook : MonoBehaviour
 
     void Update()
     {
-        if (GameManager.Night < firstNight) return;
+        if (AI <= 0) return;   // AI 0 = 비활성 (오늘 밤 안 나옴)
 
         cycleTimer -= Time.deltaTime;
         if (cycleTimer <= 0f)
@@ -80,7 +83,7 @@ public class KimWook : MonoBehaviour
     {
         Leave();   // 일단 사라짐 (계속 있을지는 이번 주사위로 다시 결정)
 
-        if (Random.Range(0, 10) >= aiLevel) return;   // 이번엔 안 나옴
+        if (Random.Range(0, 10) >= AI) return;   // 이번엔 안 나옴
 
         int room = PickRoom();
         if (room >= 0) Appear(room);
@@ -143,7 +146,7 @@ public class KimWook : MonoBehaviour
         {
             seen = true;
             exposure += Time.deltaTime;
-            if (exposure >= exposureLimit) Attack();
+            if (exposure >= ExposureLimit) Attack();
             return;
         }
 

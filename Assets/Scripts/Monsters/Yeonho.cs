@@ -19,13 +19,21 @@ public class Yeonho : MonoBehaviour
     public float spawnDelayMin = 10f;
     public float spawnDelayMax = 25f;
 
-    [Header("엔진A")]
-    public int aiLevel = 1;   // 날짜는 GameManager.Night에서 읽음 (자기 currentNight 필드 없음)
+    [Header("엔진A — 밤별 AI (인덱스 = 밤 숫자, [0]은 안 쓰는 칸)")]
+    [Tooltip("기획서 §8: 1일 0(비활성) / 2일 2(맛보기) / 3일 5 / 4일 9 / 5일 16")]
+    public int[] aiByNight = { 0, 0, 2, 5, 9, 16 };
+    [Tooltip("테스트용: 0 이상이면 밤 상관없이 이 AI 사용. -1 = 끔(평소)")]
+    public int testAiOverride = -1;
+    public int AI => (testAiOverride >= 0) ? testAiOverride : GameManager.ByNight(aiByNight);
+
+    [Header("2일차 맛보기 (기획서: 4~5시 확정 1회 → 창문 접근 → 종 첫 학습)")]
+    public int tasteNight = 2;       // 이 밤엔
+    public int tasteHour = 4;        // 이 시부터 등장 대기 시작, 창문에서 한 번 밀려나면 오늘 밤 퇴장
 
     [Header("행동 굴림 가중치")]
     public int weightForward = 60;
-    public int weightRetreat = 20;
-    public int weightStay = 20;
+    public int weightRetreat = 15;
+    public int weightStay = 25;
 
     [Header("창문 앞 머무르는 시간")]
     public float windowFrontTime = 6f;
@@ -67,6 +75,11 @@ public class Yeonho : MonoBehaviour
     private float retreatTimer = -1f;
     private int retreatTarget = -1;
 
+    // 2일차 맛보기
+    private bool IsTasteNight => GameManager.Night == tasteNight;
+    private bool tasteDone = false;          // 오늘 밤 맛보기 끝 (더 안 나옴)
+    private bool tasteRetreatPending = false; // 창문앞에서 종으로 밀려나는 중 → 후퇴 끝나면 퇴장
+
     void Start()
     {
         spawnWait = Random.Range(spawnDelayMin, spawnDelayMax);
@@ -90,6 +103,8 @@ public class Yeonho : MonoBehaviour
 
     void Update()
     {
+        if (AI <= 0) return;   // AI 0 = 비활성 (오늘 밤 안 나옴)
+
         // 종 쿨 감소
         if (bellCooldownTimer > 0f) bellCooldownTimer -= Time.deltaTime;
 
@@ -111,6 +126,9 @@ public class Yeonho : MonoBehaviour
     // === 등장 ===
     void UpdateSpawning()
     {
+        // 2일차 맛보기: 정해진 시 전엔 안 나오고, 한 번 끝났으면 다시 안 나옴
+        if (IsTasteNight && (tasteDone || GameManager.Hour < tasteHour)) return;
+
         spawnTimer += Time.deltaTime;
         if (spawnTimer >= spawnWait)
         {
@@ -140,7 +158,7 @@ public class Yeonho : MonoBehaviour
         // 흉포: 카운터 2배(+2/초) + 판정 기준 -1 (기획서 §2.5 — 이동에만 영향, 종과 무관)
         bool fury = aggression != null && aggression.IsAggressive;
         moveCounter += fury ? 2f : 1f;
-        int threshold = (10 - aiLevel) - (fury ? 1 : 0) + Random.Range(1, 16) - totalTurns;
+        int threshold = (10 - AI) - (fury ? 1 : 0) + Random.Range(1, 16) - totalTurns;
         if (moveCounter > threshold)
         {
             moveCounter = 0f;
@@ -279,6 +297,7 @@ public class Yeonho : MonoBehaviour
             state = State.Moving;
             int back = Mathf.Max(0, nodes.Length - windowFrontRetreat);
             ScheduleRetreat(back);
+            if (IsTasteNight) tasteRetreatPending = true;   // 맛보기 밤: 창문에서 밀려나면 오늘은 끝
             return;
         }
 
@@ -326,7 +345,20 @@ public class Yeonho : MonoBehaviour
         confrontTimer = 0f;
         retreatTimer = -1f;
         retreatTarget = -1;
+        if (IsTasteNight) EndTaste();   // 맛보기 밤: 비상 종으로 밀어냈으면 오늘은 끝
         return true;   // 성공
+    }
+
+    // 2일차 맛보기 끝 — 오늘 밤 더 안 나옴
+    void EndTaste()
+    {
+        tasteDone = true;
+        tasteRetreatPending = false;
+        if (model != null) model.SetActive(false);
+        state = State.Spawning;
+        retreatTimer = -1f;
+        retreatTarget = -1;
+        Debug.Log("★ 연호 맛보기 끝 (창문에서 밀어냄) — 오늘 밤 더 안 나옴");
     }
 
     // 배터리 방전 암전 연출용 (BatteryBlackout가 호출) — AI는 꺼진 상태(enabled=false)에서 창문앞에 모습만 드러냄
@@ -360,6 +392,9 @@ public class Yeonho : MonoBehaviour
             moveCounter = 0f;  // 바로 재이동 방지
             secondTimer = 0f;  // 초 타이머 리셋
         }
+
+        // 맛보기 밤: 창문앞에서 종으로 밀려난 거면 후퇴하는 순간 퇴장 (창문에서 물러나며 사라짐, CCTV엔 이동 스태틱이 덮음)
+        if (tasteRetreatPending) EndTaste();
     }
 
     public void ResetToStart()

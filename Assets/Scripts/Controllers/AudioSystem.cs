@@ -10,7 +10,9 @@ public class AudioSystem : MonoBehaviour
 
     [Header("오디오 고장")]
     public bool isAudioBroken = false;
-    public float breakTimeLimit = 32f;    // 이 시간 안에 리셋 못 하면 STRIKE2 (원인 무관 — FNAF2 퍼펫 느낌, 의도됨)
+    [Tooltip("밤별: 오디오 고장 후 이 시간 안에 리셋 못 하면 현승 퍼펫 즉사(STRIKE2). [0]은 안 쓰는 칸. 원인 무관(FNAF2 퍼펫 느낌, 의도됨). 기획서는 10→5초인데 너무 짧아서 유저가 32초로 늘림")]
+    public float[] breakTimeLimitByNight = { 0f, 32f, 32f, 32f, 32f, 32f };
+    float BreakTimeLimit => GameManager.ByNight(breakTimeLimitByNight);
     public int noBreakUntilNight = 1;     // 이 밤까지는 오디오 고장 자체가 없음 (1일차 교육 — STRIKE1도 점프스케어만)
 
     [Header("리셋")]
@@ -40,7 +42,7 @@ public class AudioSystem : MonoBehaviour
 
         // 고장 상태 방치 → 타이머 (초과 시 STRIKE2, 다음 구현)
         breakTimer += Time.deltaTime;
-        if (breakTimer >= breakTimeLimit)
+        if (breakTimer >= BreakTimeLimit)
         {
             Debug.Log("★★★ 오디오 리셋 실패! (STRIKE2 = 퍼펫 즉사,)");
             if (hyunsoong != null) hyunsoong.Strike2();
@@ -114,8 +116,7 @@ public class AudioSystem : MonoBehaviour
 
     int GetBellLimit()
     {
-        int night = Mathf.Clamp(GameManager.Night, 0, bellLimitByNight.Length - 1);
-        return bellLimitByNight[night];
+        return GameManager.ByNight(bellLimitByNight);
     }
 
     public bool IsResetting() { return isResetting; }

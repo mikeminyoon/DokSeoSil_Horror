@@ -6,14 +6,23 @@ using UnityEngine;
 // 현우 모델에 붙인다.
 public class Hyunwoo : MonoBehaviour
 {
-    // 날짜가 필요해지면 GameManager.Night를 읽을 것 (자기 currentNight 필드 두지 않음)
-
     [Header("환풍구 루트 노드")]
     public Transform[] nodes;   // [허공, 공부방2앉음, 환풍구매달림, 화장실, 관리실입구]
 
-    [Header("이동 판정")]
-    public int aiLevel = 5;
+    [Header("이동 판정 — 밤별 AI (인덱스 = 밤 숫자, [0]은 안 쓰는 칸)")]
+    [Tooltip("기획서 §8: 1일 0(비활성) / 2일 5 / 3일 6 / 4일 10 / 5일 13. rand(0~19) < AI 이면 이동")]
+    public int[] aiByNight = { 0, 0, 5, 6, 10, 13 };
+    [Tooltip("테스트용: 0 이상이면 밤 상관없이 이 AI 사용. -1 = 끔(평소)")]
+    public int testAiOverride = -1;
+    public int AI => (testAiOverride >= 0) ? testAiOverride : GameManager.ByNight(aiByNight);
     public float cycleTime = 5f;
+
+    [Header("퇴장 (기획서: 5시 이후 현우 퇴장 → 연호가 주역)")]
+    public int leaveHour = 5;                // 이 시부터 퇴장 (진행 중인 입구 판정은 끝내고 나감)
+
+    [Header("2일차 처벌 (기획서: 2일차는 스택 없이 배터리만 뭉텅)")]
+    public int stackFromNight = 3;           // 이 밤부터 스택. 그 전 밤엔 배터리만 깎음
+    public float earlyNightBatteryCost = 15f;
     public int fixedNodeCount = 3;   // 앞 3노드(허공/앉음/매달림)는 고정 시간
 
     [Header("고정 노드 대기 시간 (노드별, 랜덤)")]
@@ -60,9 +69,11 @@ public class Hyunwoo : MonoBehaviour
     private float holdTimer = 0f;            // 셔터 유지 (닫힌 동안 참)
     private float earlyLeaveTimer = 0f;      // 조기 이탈 굴림용 (초당)
     private float armedTimer = 0f;           // armed 유예
+    private bool retired = false;            // 퇴장함 (오늘 밤 더 안 나옴)
 
     void Start()
     {
+        if (monitor == null) monitor = FindAnyObjectByType<MonitorDisplay>();
         if (shutter == null) shutter = FindAnyObjectByType<ShutterController>();
         if (viewController == null) viewController = FindAnyObjectByType<ViewController>();
         if (jumpscare == null) jumpscare = FindAnyObjectByType<JumpscareOverlay>();
@@ -72,6 +83,15 @@ public class Hyunwoo : MonoBehaviour
 
     void Update()
     {
+        if (retired || AI <= 0) return;   // 퇴장했거나 AI 0 = 비활성 (허공 노드에 머묾 = 안 보임)
+
+        // 5시 퇴장: 이동 중일 때만 (입구 판정 중이면 끝난 뒤 ResetToStart에서 퇴장)
+        if (state == State.Moving && GameManager.Hour >= leaveHour)
+        {
+            Retire();
+            return;
+        }
+
         switch (state)
         {
             case State.Moving:     UpdateMoving();     break;
@@ -101,7 +121,7 @@ public class Hyunwoo : MonoBehaviour
             {
                 timer = 0f;
                 int roll = Random.Range(0, 20);
-                if (roll < aiLevel)
+                if (roll < AI)
                     MoveToNode(currentNode + 1);
             }
         }
@@ -231,14 +251,22 @@ public class Hyunwoo : MonoBehaviour
         }
     }
 
-    // 당함: 스택+1 + 잔상 (비즉사)
+    // 당함: 스택+1 + 잔상 (비즉사). 스택 시작 전 밤(2일차)엔 스택 대신 배터리만 뭉텅.
     void GetHit(string reason)
     {
-        stackCount++;
-        Debug.Log($"★★ 현우 침투 성공! 스택 +1 (현재 {stackCount}) — {reason}");
-
         // 잔상 연출 (JumpscareOverlay 재활용, 환풍구 방향 애니는 Phase 8)
         if (jumpscare != null) jumpscare.Play();
+
+        if (GameManager.Night < stackFromNight)
+        {
+            if (BatteryManager.Instance != null) BatteryManager.Instance.Drain(earlyNightBatteryCost);
+            Debug.Log($"★★ 현우 침투 성공! {GameManager.Night}일차라 스택 대신 배터리 -{earlyNightBatteryCost:F0} — {reason}");
+            ResetToStart();
+            return;
+        }
+
+        stackCount++;
+        Debug.Log($"★★ 현우 침투 성공! 스택 +1 (현재 {stackCount}) — {reason}");
 
         // TODO: 스택별 효과 (1 조명깜빡 / 2 조명나감 / 3 정전) — 나중 구현
         if (stackCount >= 3)
@@ -261,5 +289,18 @@ public class Hyunwoo : MonoBehaviour
         armedTimer = 0f;
         earlyLeaveTimer = 0f;
         MoveToNode(0);
+        // 퇴장 시간 지났으면 Update 첫 줄에서 바로 Retire (이미 허공 노드라 안 보임)
+    }
+
+    // 퇴장: 허공 노드로 사라지고 오늘 밤 더 안 나옴
+    void Retire()
+    {
+        retired = true;
+        if (currentNode != 0)
+        {
+            if (monitor != null) monitor.GhostMoveStatic();   // 보던 화면에서 사라질 때 지직 (다른 이동과 같게)
+            MoveToNode(0);
+        }
+        Debug.Log($"★ 현우 퇴장 ({leaveHour}시) — 오늘 밤 더 안 나옴");
     }
 }

@@ -123,15 +123,13 @@ public class YeonhoAggression : MonoBehaviour
     bool InFuryHours()
     {
         if (furyHourStart == furyHourEnd) return false;          // 시간대 흉포 없음
-        var gm = GameManager.Instance;
-        if (gm == null || gm.isNightOver) return false;
-        int h = (gm.gameHour == 12) ? 0 : gm.gameHour;           // 12시 → 0, 1~5시 그대로
+        int h = GameManager.Hour;                                // 0~6 (12시 = 0, 밤 끝 = 6)
         return h >= furyHourStart && h < furyHourEnd;
     }
 
     bool RollChance()
     {
-        int ai = (yeonho != null) ? yeonho.aiLevel : 0;
+        int ai = (yeonho != null) ? yeonho.AI : 0;
         return Random.Range(0, randomDie) < ai;
     }
 
