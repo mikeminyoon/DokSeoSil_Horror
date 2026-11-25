@@ -71,6 +71,8 @@ public class BatteryBlackout : MonoBehaviour
         // 귀신 전부 정지 (그 자리에 멈춤)
         foreach (var g in FindObjectsByType<Hyunsoong>()) g.enabled = false;
         foreach (var g in FindObjectsByType<Hyunwoo>()) g.enabled = false;
+        foreach (var g in FindObjectsByType<KimWook>()) g.enabled = false;   // 새 귀신 추가하면 여기에도 추가할 것
+        foreach (var g in FindObjectsByType<JoonYoung>()) g.enabled = false;
         yeonho = FindAnyObjectByType<Yeonho>();
         if (yeonho != null) yeonho.enabled = false;
 

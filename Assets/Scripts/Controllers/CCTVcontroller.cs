@@ -21,9 +21,15 @@ public class CCTVController : MonoBehaviour
     public float moveSpeed = 6f;
 
     public bool isCameraDown = false;
+    public bool isFullyIn = false;      // 카메라가 모니터 앞에 "다 도착"했나 (isCameraDown은 켜는 순간 true, 이건 Lerp 끝나야 true)
     public bool inputLocked = false;    // 방전 암전 등: 켜기/끄기 입력 무시 (카메라 복귀 이동은 계속 처리)
+
+    [Header("완전히 들어감 판정 (isFullyIn)")]
+    public float fullyInPosDist = 0.02f;   // 모니터 앞 위치와 이만큼 가까우면
+    public float fullyInRotDeg = 0.5f;     // 각도 차이도 이만큼 이하면
     private Camera cam;
     private Transform camT;
+    public Camera PlayerCamera => cam;  // 플레이어 시점 카메라 (준영이 "화면에 보이나" 판정에 씀)
 
     // 카메라 원래 집 위치 (고정 — 저장 안 하고 이걸로 복귀)
     private Vector3 homeLocalPos;
@@ -68,8 +74,16 @@ public class CCTVController : MonoBehaviour
             // CCTV 켜짐: 모니터 앞으로 전진 (위치 + 회전 둘 다 CCTV가 잡음)
             camT.position = Vector3.Lerp(camT.position, cctvViewPoint.position, moveSpeed * Time.deltaTime);
             camT.rotation = Quaternion.Slerp(camT.rotation, cctvViewPoint.rotation, moveSpeed * Time.deltaTime);
+
+            isFullyIn = Vector3.Distance(camT.position, cctvViewPoint.position) < fullyInPosDist
+                        && Quaternion.Angle(camT.rotation, cctvViewPoint.rotation) < fullyInRotDeg;
         }
-        else if (returning)
+        else
+        {
+            isFullyIn = false;
+        }
+
+        if (!isCameraDown && returning)
         {
             // 복귀: 항상 고정된 집으로 (어중간한 위치 저장 문제 없음)
             camT.localPosition = Vector3.Lerp(camT.localPosition, homeLocalPos, moveSpeed * Time.deltaTime);
