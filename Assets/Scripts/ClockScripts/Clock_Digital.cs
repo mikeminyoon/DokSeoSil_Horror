@@ -7,23 +7,42 @@ public class Clock_Digital : MonoBehaviour
     Renderer objRenderer;
     float tickDelay;
     bool tick;
-    bool poweredOff = false;   // 방전 암전 — 숫자 꺼짐 (게임 시간 자체는 GameManager에서 계속 흐름)
+    bool poweredOff = false;   // 전기 나감(방전 암전 / 배선 고장) — 숫자 꺼짐 (게임 시간 자체는 GameManager에서 계속 흐름)
+    Color[] savedBase = new Color[6];       // 꺼지기 전 원래 색 (배선 복구 때 되돌림)
+    Color[] savedEmission = new Color[6];
 
     void Start()
     {
         objRenderer = GetComponent<Renderer>();
     }
 
-    // 방전 암전: 숫자·콜론(materials[1~5])을 검게 + 발광 끔 → 시계가 꺼진 것처럼
+    // 전기 나감: 숫자·콜론(materials[1~5])을 검게 + 발광 끔 → 시계가 꺼진 것처럼
     public void PowerOff()
     {
+        if (poweredOff) return;   // 이미 꺼짐 (배선 고장 중 방전 등) — 검은색을 원래 색으로 저장하면 안 됨
         poweredOff = true;
         if (objRenderer == null) objRenderer = GetComponent<Renderer>();
         var mats = objRenderer.materials;
         for (int i = 1; i <= 5 && i < mats.Length; i++)
         {
+            savedBase[i] = mats[i].GetColor("_BaseColor");
+            savedEmission[i] = mats[i].GetColor("_EmissionColor");
             mats[i].SetColor("_BaseColor", Color.black);
             mats[i].SetColor("_EmissionColor", Color.black);
+        }
+    }
+
+    // 전기 복구 (배선 고장 수리): 원래 색으로
+    public void PowerOn()
+    {
+        if (!poweredOff) return;
+        poweredOff = false;
+        if (objRenderer == null) objRenderer = GetComponent<Renderer>();
+        var mats = objRenderer.materials;
+        for (int i = 1; i <= 5 && i < mats.Length; i++)
+        {
+            mats[i].SetColor("_BaseColor", savedBase[i]);
+            mats[i].SetColor("_EmissionColor", savedEmission[i]);
         }
     }
 

@@ -4,7 +4,7 @@ using UnityEngine;
 // 오디오·카메라 고장엔 경보 없음 (패널 error 표시만).
 //
 // [켜짐] 환기 오류 중 (리셋 진행 중에도 계속 — 리셋이 끝나야 꺼짐)
-// [꺼짐] 정상 / 배터리 방전 암전 (전기가 없으니까)
+// [꺼짐] 정상 / 배터리 방전 암전 / 배선 고장 중 (전기가 없으니까 — 복구되면 다시 울림)
 //
 // VentilationSystem이 시작할 때 없으면 자동으로 붙임. 조절하려면 VentilationSystem 오브젝트에 미리 붙여둘 것.
 public class VentAlarm : MonoBehaviour
@@ -45,7 +45,8 @@ public class VentAlarm : MonoBehaviour
 
     void Update()
     {
-        bool powerDead = BatteryManager.Instance != null && BatteryManager.Instance.isDead;
+        bool powerDead = (BatteryManager.Instance != null && BatteryManager.Instance.isDead)
+                      || (WiringFailure.Instance != null && WiringFailure.Instance.IsActive);
         bool shouldAlarm = vent != null && vent.IsVentBroken() && !powerDead;
 
         if (shouldAlarm != alarmOn)

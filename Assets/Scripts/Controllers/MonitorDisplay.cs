@@ -45,7 +45,7 @@ public class MonitorDisplay : MonoBehaviour
     private Color32[] storagePixels;
     private float storageTimer = 0f;
 
-    private bool poweredOff = false;     // 방전 암전 — 화면 까맣게, 아무것도 안 함
+    private bool poweredOff = false;     // 전기 나감(방전 암전 / 배선 고장) — 화면 까맣게, 아무것도 안 함
 
     void Start()
     {
@@ -243,7 +243,7 @@ public class MonitorDisplay : MonoBehaviour
         storageTex.Apply();
     }
 
-    // 방전 암전: 모니터 꺼짐 (검은 화면 + 방 버튼 숨김)
+    // 전기 나감 (방전 암전 / 배선 고장): 모니터 꺼짐 (검은 화면 + 방 버튼 숨김)
     public void PowerOff()
     {
         poweredOff = true;
@@ -254,6 +254,14 @@ public class MonitorDisplay : MonoBehaviour
             buttonGroup.interactable = false;
             buttonGroup.blocksRaycasts = false;
         }
+    }
+
+    // 전기 복구 (배선 고장 수리): 꺼진 상태(Off)부터 다시 — CCTV 올리면 전환 스태틱부터 정상 작동
+    public void PowerOn()
+    {
+        poweredOff = false;
+        state = State.Off;
+        ApplyButtonState();
     }
 
     public void RingBellCurrentRoom()

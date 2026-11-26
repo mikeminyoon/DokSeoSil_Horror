@@ -10,7 +10,7 @@ using UnityEngine.Serialization;
 //   - 흉포 시간대 (furyHourStart ~ furyHourEnd 시)
 //   - 방치: idleLimit초 동안 조작 없음 (시야 회전 / 옵션: CCTV 방 전환)
 //   - 확률: rollInterval초마다 rand(0~randomDie-1) < 연호 AI
-//   - TODO: 정전(현우 3스택 배선 고장) — 만들 때 CheckConditions에 한 줄 추가
+//   - 정전 중 (현우 3스택 배선 고장, WiringFailure)
 // [유지] 원인이 사라진 뒤에도 furyMinDuration초는 흉포 유지 → 그 뒤 OFF.
 //        (확률로 걸리면 딱 이 시간만큼. 고장처럼 계속되는 원인이면 고장 중엔 계속 흉포.)
 // [효과] 연호(Yeonho.cs)가 IsAggressive를 읽음: 매초 이동 카운터 +2(평소 +1), 이동 판정 기준 -1. 이동에만 영향, 종과 무관.
@@ -114,9 +114,10 @@ public class YeonhoAggression : MonoBehaviour
     {
         if (audioSystem != null && audioSystem.IsAudioBroken()) return "오디오 고장";
         if (vent != null && vent.IsVentBroken()) return "환기 오류";
+        var wiring = WiringFailure.Instance;   // 현우가 만들 수도 있어서 매번 확인 (Start 순서 무관)
+        if (wiring != null && wiring.IsActive) return "정전 (배선 고장)";
         if (InFuryHours()) return $"흉포 시간대 {furyHourStart}~{furyHourEnd}시";
         if (idleTime >= idleLimit) return $"방치 {idleLimit:F0}초";
-        // TODO: 정전(현우 3스택 배선 고장) 중이면 return "정전";
         return null;
     }
 

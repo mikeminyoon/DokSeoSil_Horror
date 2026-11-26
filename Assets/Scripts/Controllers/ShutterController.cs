@@ -26,7 +26,7 @@ public class ShutterController : MonoBehaviour
 
     public bool isShutterClosed = false;   // 셔터 닫힘? (다른 스크립트가 읽음)
     public bool isForcedOpen = false;      // 환기 오류로 강제 개방 중? (이동안 못 닫음 — VentilationSystem이 세팅)
-    public bool inputLocked = false;       // 방전 암전: 버튼 숨김 + 셔터·불빛 조작 불가 (BatteryBlackout가 세팅)
+    public bool inputLocked = false;       // 전기 나감(방전 암전 / 배선 고장): 버튼 숨김 + 셔터·불빛 조작 불가
 
     [Header("배터리 소모")]
     public float shutterDrainRate = 2f;
@@ -47,6 +47,10 @@ public class ShutterController : MonoBehaviour
         bool inVentZone = viewController.enabled && viewController.currentZone == ventZone;
         SetButtons(inVentZone && !inputLocked);
 
+        // 환풍구 구역을 벗어나면 불빛 자동으로 꺼짐 (버튼 누른 채 고개 돌려도 불빛이 남지 않게)
+        // → "불빛 켜짐 = 플레이어가 환풍구를 보고 있음"이 항상 성립 (현우 도착·퇴장 판정이 이걸 믿음)
+        if (!inVentZone && isLightOn) LightOff();
+
         // 셔터 닫혀있으면 배터리 소모
         if (isShutterClosed && BatteryManager.Instance != null)
             BatteryManager.Instance.DrainPerSecond(shutterDrainRate);
@@ -59,6 +63,19 @@ public class ShutterController : MonoBehaviour
         }
 
         
+    }
+
+    // 셔터가 환풍구를 거의 다 가렸나 (닫힘 + 90% 이상 내려옴) — VentLightReveal이 씀
+    // 셔터 모양·크기와 상관없이 "닫힌 셔터 너머 귀신은 안 보임"을 보장 (읽기 전용, 동작엔 영향 없음)
+    public bool IsCoveringVent
+    {
+        get
+        {
+            if (!isShutterClosed || shutter == null || closedPos == null || openPos == null) return false;
+            float travel = Vector3.Distance(openPos.position, closedPos.position);
+            if (travel < 0.0001f) return true;
+            return Vector3.Distance(shutter.position, closedPos.position) / travel < 0.1f;
+        }
     }
 
     // 셔터 토글 (버튼이 호출)
@@ -112,13 +129,19 @@ public class ShutterController : MonoBehaviour
         if (ventLight != null) ventLight.enabled = false;
     }
 
-    // 방전 암전: 셔터 열림(원작 FNAF1처럼 문이 열려버림) + 불빛 끔 + 조작 잠금
+    // 전기 나감 (방전 암전 / 배선 고장): 셔터 열림(원작 FNAF1처럼 문이 열려버림) + 불빛 끔 + 조작 잠금
     public void PowerOff()
     {
         inputLocked = true;
         isShutterClosed = false;
         LightOff();
         SetButtons(false);
+    }
+
+    // 전기 복구 (배선 고장 수리): 조작 잠금만 풀림 — 셔터는 열린 채, 버튼은 Update가 다시 보여줌
+    public void PowerOn()
+    {
+        inputLocked = false;
     }
 
     // 점프스케어 등으로 조작 강제 잠금 (버튼 숨김 + 라이트 끔)

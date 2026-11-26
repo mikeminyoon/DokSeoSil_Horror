@@ -82,6 +82,7 @@ public class BatteryBlackout : MonoBehaviour
         if (audioSys != null) audioSys.enabled = false;
         var camSys = FindAnyObjectByType<CameraSystem>();
         if (camSys != null) camSys.enabled = false;
+        if (WiringFailure.Instance != null) WiringFailure.Instance.enabled = false;   // 배선 고장 자동 복구가 다시 켜지 않게
         var vent = FindAnyObjectByType<VentilationSystem>();
         if (vent != null)
         {
@@ -117,6 +118,9 @@ public class BatteryBlackout : MonoBehaviour
         var monitor = FindAnyObjectByType<MonitorDisplay>();
         if (monitor != null) monitor.PowerOff();
         foreach (var c in FindObjectsByType<Clock_Digital>()) c.PowerOff();
+
+        // 관리실 조명 꺼짐
+        if (RoomLights.Instance != null) RoomLights.Instance.PowerOff();
     }
 
     void Update()
