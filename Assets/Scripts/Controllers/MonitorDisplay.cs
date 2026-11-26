@@ -267,6 +267,17 @@ public class MonitorDisplay : MonoBehaviour
         ApplyButtonState();
     }
 
+    // 지금 플레이어가 CCTV로 이 방을 "보고(듣고) 있나" — 연호 창고 부스럭 소리 판정용 (구현노트 §15.24)
+    //   CCTV 켜짐 + 방 영상 상태(Active, 전환 스태틱 아님) + 그 방 + 카메라 고장 아님 + 전기 들어옴
+    public bool IsShowingRoom(int room)
+    {
+        if (poweredOff) return false;
+        if (cctv == null || !cctv.isCameraDown) return false;
+        if (state != State.Active || currentRoom != room) return false;
+        if (cameraSystem != null && cameraSystem.IsCameraBroken()) return false;
+        return true;
+    }
+
     public void RingBellCurrentRoom()
     {
         if (yeonho != null)

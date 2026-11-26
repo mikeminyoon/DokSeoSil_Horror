@@ -23,6 +23,10 @@ public class JumpscareOverlay : MonoBehaviour
     private float timer = 0f;
     private bool playing = false;
 
+    // 잔상(비즉사 점프스케어) 재생 중인가 — 연호가 읽음: 잔상 시작 = 시야 상실(빼꼼이면 즉사),
+    // 연호 즉사는 잔상이 끝난 뒤에 이어서 (연속으로 당하기, 구현노트 §15.24). 게임오버 화면은 여기 안 들어감
+    public bool IsPlaying => playing;
+
     void Start()
     {
         image = GetComponent<Image>();
