@@ -5,8 +5,8 @@
 > "이전 Claude를 그대로 옮긴다"는 목적으로 작성됨. 처음 읽고 이 프로젝트의
 > 설계 철학·완성 시스템·코드 구조·함정·남은 작업·협업 방식을 전부 파악할 것.
 >
-> **마지막 갱신: 2026-11-26** (Claude Code 세션 — 현우 스택 후폭풍 + 배선 고장 임시판, 환풍구 불빛에만 보임 + "등 뒤로" 갑툭튀).
-> 설계 결정 원문은 **구현노트 §15**(11-24: §15.1~11 / 11-25: §15.12~17 / 11-26: §15.18~19)에 있다.
+> **마지막 갱신: 2026-11-26** (Claude Code 세션 — 현우 스택 후폭풍 + 배선 고장 임시판, 환풍구 불빛에만 보임 + "등 뒤로" 갑툭튀, CCTV UI World 캔버스).
+> 설계 결정 원문은 **구현노트 §15**(11-24: §15.1~11 / 11-25: §15.12~17 / 11-26: §15.18~20)에 있다.
 
 ---
 
@@ -175,9 +175,10 @@ ViewController 100 → CCTV 200 → Panel 300. (GameManager는 기본 순서지�
 - **World Space Canvas** 텍스트, 모니터에 부착. `cctv.isCameraDown`일 때만 표시.
 - ⭐ **UI 철학 (유저가 스스로 도출):**
   - **World Space** = 3D 오브젝트에 붙은 정보/장치(배터리, 비상 종).
-  - **Screen Overlay** = 플레이어 조작(셔터·라이트·패널 버튼·**CCTV 방 버튼** — 실제 씬 확인 결과 CCTV 버튼도 Overlay. 예전 문서엔 World로 잘못 적혀 있었음).
-  - 씬 구조: 3D 장면은 저해상도 RT → Overlay `Canvas`의 전체화면 `RawImage`로 표시. 같은 `Canvas`에 CCTV/PANEL/Vent 버튼 묶음과 JumpscareOverlay가 있음. World 캔버스는 `WorldCanvas`(배터리, CCTV_Screen 자식)와 `EmergencyBellWorldCanvas`(이벤트 카메라 = UIRayCamera)뿐.
-  - **리셋 패널 (구현노트 §15.16):** `ResetPanelWorldCanvas`(World, 이벤트 카메라 UIRayCamera, Canvas Group = PanelController.panelButtons) + **패널 글자만 고해상도** 전용 카메라 `PanelUI_Camera`(PanelUI 레이어만 → `PanelUIRT` 1440×1080 → `RawImageHIgh`, 항상 켜둠, HDR·MSAA 끔은 씬 파일에서) + `ResetPanelMenu`(>>> 커서 / error·rebooting 깜빡, 이름으로 자동 연결). 태블릿 모델은 에셋 스토어 무료 패키지(스크립트는 불필요, 사용 중단 API 경고 남).
+  - **Screen Overlay** = 플레이어 조작(셔터·라이트 버튼). 패널·CCTV 버튼은 World로 옮김(아래).
+  - 씬 구조: 3D 장면은 저해상도 RT → Overlay `Canvas`의 전체화면 `RawImage`로 표시. 같은 `Canvas`에 Vent 버튼 묶음과 JumpscareOverlay가 있음. World 캔버스는 `CCTVWorldCanvas`(CCTV 버튼 + 배터리, CCTV_Screen 자식) / `ResetPanelWorldCanvas` / `EmergencyBellWorldCanvas` — **이벤트 카메라는 전부 `UIRayCamera`**.
+  - **CCTV 버튼 (구현노트 §15.20):** `CCTVWorldCanvas`(옛 `WorldCanvas` 재활용, PanelUI 레이어 → 고해상도 글자). `MonitorDisplay.buttonGroup` = `CCTV Swtichs` Canvas Group 그대로. 나중에 UI 이미지는 버튼 `Image`에 스프라이트만 넣으면 됨.
+  - **리셋 패널 (구현노트 §15.16):** `ResetPanelWorldCanvas`(World, 이벤트 카메라 UIRayCamera, Canvas Group = PanelController.panelButtons) + **패널 글자만 고해상도** 전용 카메라 `PanelUI_Camera`(PanelUI 레이어만 → `PanelUIRT` 1600×1200 → `RawImageHIgh`, 항상 켜둠, Near 0.1, HDR·MSAA 끔은 씬 파일에서) + `ResetPanelMenu`(>>> 커서 / error·rebooting 깜빡, 이름으로 자동 연결). 태블릿 모델은 에셋 스토어 무료 패키지(스크립트는 불필요, 사용 중단 API 경고 남).
 
 ### 4.11 ⭐ 연호 (Yeonho.cs) — 엔진A, 메인 빌런 (이 프로젝트의 핵심)
 
@@ -281,7 +282,7 @@ move_counter > 임계값 → 행동 굴림
 
 ### 4.18 관리실 조명 (RoomLights.cs) + 배선 고장 (WiringFailure.cs) — 1차 (구현노트 §15.18)
 - **RoomLights:** 단계 0 정상 / 1 깜빡(8~20초마다) / 2 나감. `SetPowerCut`(배선 고장) / `RestoreAfterRepair`(정상으로) / `PowerOff`(방전, 영구).
-  - ⭐ **켜고 끄기(enabled)만** — 밝기·범위·색·위치 안 건드림. **라이트 Mode는 Realtime/Mixed**(Baked는 안 꺼짐). `lights` 비우면 임시 천장등 자동 생성. 환풍구 불빛·Siren은 넣지 말 것.
+  - ⭐ **켜고 끄기(enabled)만** — 밝기·범위·색·위치 안 건드림. **라이트 Mode는 Realtime/Mixed**(Baked는 안 꺼짐). `lights` 비우면 임시 천장등 자동 생성 — 지금은 유저가 만든 `Lights/Real Light`가 연결돼 있음. 환풍구 불빛·Siren은 넣지 말 것(Siren은 오브젝트 켜둔 채 Light 컴포넌트만 꺼둠 — 오브젝트를 끄면 VentAlarm 경고등이 안 나옴).
 - **WiringFailure:** `Begin(이유)` → 관리실 전기 나감(조명·환풍구 불빛·CCTV·모니터·패널·시계·환기 경보 꺼짐, 셔터 열린 채 멈춤, **비상 종만 살아있음**, 귀신 계속 움직임, 연호 흉포). 밤당 1회.
   - **지금은 임시로 `autoRepair` 20초 뒤 `Repair()`** → 조명 정상. ⭐ 창고런 만들면 autoRepair 끄고 브레이커 수리 완료에서 `Repair()`만 호출.
   - 복구 시점에 배터리 방전이면 복구 안 함(방전 암전이 우선). 방전 암전이 WiringFailure를 끔.
@@ -300,6 +301,8 @@ move_counter > 임계값 → 행동 굴림
 - **카메라 복귀 버그(해결됨):** 어중간한 위치를 home으로 저장하면 이상한 데로 복귀. → homeLocalPos를 Start에서 1회 고정.
 - **World Space Canvas 스케일:** 처음 만들면 거대함. Scale 0.001부터.
 - **World UI 클릭 안 될 때:** GraphicRaycaster IgnoreReversedGraphics, 전체화면 RawImage의 Raycast Target, 저해상도 RT(4:3)와 화면(16:9) 종횡비 불일치 — UIRayCamera로 해결함(커밋 9f84e4e).
+- **World 캔버스 Event Camera는 항상 `UIRayCamera`.** `PanelUI_Camera`(RT에 그리는 카메라)를 넣으면 마우스 좌표가 RT 픽셀 기준이 돼서 클릭이 어긋남. 또 **카메라에서 Near보다 가까운 버튼은 클릭 판정에서 무시됨**(IgnoreReversedGraphics) — CCTV 볼 때 모니터까지 약 30cm라 `UIRayCamera`·`PanelUI_Camera` Near 0.1로 해둠(§15.20).
+- **TMP 글자는 가로·세로 크기가 같아야 안 깨짐.** 늘린 큐브(`CCTV_Screen` 등 비균일 스케일)의 자식이거나 Scale X≠Y면 세로획이 깨짐(TMP는 선명도를 세로 크기로만 계산).
 - **URP 셰이더:** 외부 모델이 분홍/하양이면 URP/Lit로 바꾸고 Base Map 연결.
 - **엔진A 5개 임계값은 문서 오해였음.** 원본은 임계값 하나 + Random(1~15).
 - **테스트값 되돌리기:** aiLevel↑, naturalDrain↑, spawnDelay↓, bellLimitByNight 등으로 테스트함. 커밋 전 원래값 복구. 단 유저가 플레이해보고 의도적으로 바꾼 값(예: windowFrontTime 12초)은 되돌리지 말 것 — 애매하면 물어보기.
@@ -313,7 +316,7 @@ move_counter > 임계값 → 행동 굴림
 1. ~~배터리 방전 → 연호 점프스케어~~ → 완료(4.15 방전 암전 시퀀스).
 2. ~~현승 §14 자동 발동~~ → 완료(화면 전환 즉시 OR 5초 자동, 구현노트 §15.10). 알려진 모서리: 패널 리셋 중 STRIKE1이면 패널이 안 닫힌 채 점프스케어 종료 — 테스트 때 확인.
 3. ~~고장 알림~~ → 완료: 패널 FNAF3식 메뉴(§15.16) + **환기 오류 경보**(`VentAlarm` 빨간 경고등 + 임시 사이렌, 환기에만 — §15.17).
-3-1. **CCTV UI도 World 캔버스로 (유저 요청, 2026-11-25)** — 지금 CCTV 방 버튼·종 버튼(`CCTV Swtichs`)은 화면 Overlay라 평평하고, 나중에 UI 이미지 넣기도 불편. 패널처럼 **모니터에 붙은 World 캔버스 + `PanelUI` 레이어(고해상도 글자 카메라)**로 옮기면 글자 안 깨지고 입체적. 방법은 패널과 같음(§15.16): 비상 종 캔버스 복제 → `CCTV_Screen` 앞에 배치(비균일 스케일 오브젝트의 자식으로 넣지 말 것) → 레이어 PanelUI → 버튼 클릭 영역 겹침·복사된 Canvas Group 주의 → `MonitorDisplay.buttonGroup` 다시 연결.
+3-1. ~~CCTV UI도 World 캔버스로~~ → 완료(구현노트 §15.20). 모니터 World 캔버스 + PanelUI 고해상도 글자. UI 이미지 교체는 Phase 8(버튼 Image에 스프라이트만).
 
 ### 밸런스
 4. **밤 곡선 튜닝** — 구조(밤별 배열)와 기획서 AI는 넣음(4·§15.15). 남은 것: 숫자 미정인 배열 채우기(현승 워크패스, 김욱 노출, 준영 유예, 오디오 퍼펫 시간), windowFrontTime(약 12s), 비상 종(2회/60s), 현승 fixedNodeWaits, 카메라 에러 확률 — 직접 플레이하며 조정. 1일차 "12~1시 정적·4~6시 잔잔" 시퀀스도 아직.
