@@ -71,15 +71,18 @@ public class MonitorDisplay : MonoBehaviour
     {
         if (poweredOff) return;   // 방전 암전 — 꺼진 화면 그대로
 
-        // 카메라 시스템 고장 = 완전 먹통. 방/상태 무관하게 항상 스태틱만.
+        // === 1. 상태 결정 === (카메라 고장 중에도 꼭 함)
+        // ⚠️ 예전엔 고장이면 이걸 건너뛰어서, 고장 중에 CCTV를 꺼도 버튼이 켜진 채 남음 → 멀리서도 눌림 (유저 발견)
+        //    반대로 꺼진 채 고장 나면 CCTV를 켜도 버튼이 안 나와서 종을 못 쳤음
+        UpdateState();
+
+        // 카메라 시스템 고장 = 화면은 방/상태 무관하게 항상 스태틱.
+        // 버튼은 위 상태대로 (CCTV 켜져 있으면 눌림 — 고장 중에도 종은 침, 원작대로)
         if (cameraSystem != null && cameraSystem.IsCameraBroken())
         {
             ShowStatic();
             return;
         }
-
-        // === 1. 상태 결정 ===
-        UpdateState();
 
         // === 2. 상태별 화면 처리 ===
         switch (state)

@@ -10,7 +10,8 @@ using UnityEngine;
 //   - 살아있음: 비상 종 (유일한 수단), 시야 회전
 //   - 귀신들은 계속 움직임 (기획서: 정지는 창고 통로에 들어간 순간부터)
 //   - 연호 흉포 ON (YeonhoAggression이 IsActive를 봄)
-// [복구] 지금은 임시로 autoRepairTime초 뒤 자동 복구 → 조명도 정상으로.
+// [컷오프] cutoffHour(5시) 이후엔 안 남 — 창고런이 5시 이후 없음 (유저 결정, 구현노트 §15.23). 현우는 대신 배터리를 깎음.
+// [복구] 지금은 임시로 autoRepairTime초 뒤 자동 복구 → 조명도 정상으로 + 시계 분 고장도 수리 (유저 결정, §15.22).
 //   ⭐ 창고런을 만들면: autoRepair 끄고, 전기실 브레이커 수리 완료에서 Repair()만 부르면 됨.
 //
 // 씬에 없으면 현우가 자동으로 만듦.
@@ -23,12 +24,19 @@ public class WiringFailure : MonoBehaviour
     public bool autoRepair = true;
     public float autoRepairTime = 20f;
 
+    [Header("컷오프 (창고런 5시 컷오프와 맞춤)")]
+    [Tooltip("이 시(GameManager.Hour) 이후엔 배선 고장이 안 남 — 5시 이후엔 창고런이 없으니까. 현우 3스택은 대신 배터리 -15")]
+    public int cutoffHour = 5;
+
     [Header("상태 (확인용)")]
     public bool isActive = false;          // 배선 고장 중
     public bool happenedTonight = false;   // 오늘 밤 이미 났음 (밤당 1회)
     public float repairLeft = 0f;          // 자동 복구까지 남은 시간
 
     public bool IsActive => isActive;
+
+    // 지금 배선 고장을 낼 수 있나 — 고장 중 / 오늘 이미 남 / 컷오프 시간 지남이면 false
+    public bool CanBegin => !isActive && !happenedTonight && GameManager.Hour < cutoffHour;
 
     public static WiringFailure GetOrCreate()
     {
@@ -54,7 +62,7 @@ public class WiringFailure : MonoBehaviour
     // === 고장 (현우 3스택이 호출) ===
     public void Begin(string reason)
     {
-        if (isActive || happenedTonight) return;
+        if (!CanBegin) return;
         isActive = true;
         happenedTonight = true;
         repairLeft = autoRepairTime;
@@ -119,7 +127,7 @@ public class WiringFailure : MonoBehaviour
         }
         foreach (var c in FindObjectsByType<Clock_Digital>())
         {
-            if (on) c.PowerOn();
+            if (on) { c.PowerOn(); c.UnfreezeMinute(); }   // 복구 = 현우 스택 피해(분 고장)도 같이 수리 (조명처럼)
             else c.PowerOff();
         }
 

@@ -15,7 +15,12 @@ using UnityEngine.Serialization;
 //
 // [스택 후폭풍 — 3일차~, 구현노트 §15.18]
 //  1 조명 깜빡 / 2 조명 나감 / 3 배선 고장(밤당 1회).  (1스택 "잠깐 시야 흐림"은 유저가 뺌)
+//  + 1스택부터 시계 분 고장 (쌓이는 효과 — 2스택에도 남음, 배선 복구 때 수리. 구현노트 §15.22)
 //  배선 고장 낸 뒤 또 당하면 2일차처럼 배터리만 깎음 (안 그러면 그 뒤 현우가 벌 없는 귀신이 됨).
+//
+// [환풍구 자리 — 구현노트 §15.21] 관리실 환풍구는 한 번에 한 귀신 (VentOccupancy).
+//  다른 귀신(현승 R3)이 쓰는 중이거나 비운 뒤 간격 중이면 → 화장실(사각)에서 기다렸다가 들어옴.
+//  자리는 들어오기로 한 순간부터 격퇴/갑툭튀/퇴장까지 차지 ("등 뒤로"도 포함).
 public class Hyunwoo : MonoBehaviour
 {
     [Header("환풍구 루트 노드")]
@@ -75,11 +80,17 @@ public class Hyunwoo : MonoBehaviour
     public int ventZone = 2;                 // 환풍구 구역 번호
 
     [Header("스택 (현우 전용)")]
-    public int stackCount = 0;               // 1 조명 깜빡 / 2 조명 나감 / 3 배선 고장
+    public int stackCount = 0;               // 1 조명 깜빡+시계 분 고장 / 2 조명 나감(+시계) / 3 배선 고장
     public int wiringStack = 3;              // 이 스택이면 배선 고장
     public RoomLights roomLights;            // 비워두면 자동 (씬에 없으면 만듦)
     public WiringFailure wiring;             // 비워두면 자동 (씬에 없으면 만듦)
     private bool stacksSpent = false;        // 오늘 밤 배선 고장 이미 냄 → 이후엔 배터리만
+
+    [Header("환풍구 자리 (VentOccupancy — 한 번에 한 귀신)")]
+    [Tooltip("둘 다 기다릴 때 큰 쪽 먼저. 현우 2 > 현승 1 (환풍구가 현우 집이라)")]
+    public int ventPriority = 2;
+    private VentOccupancy vent;              // 비어 있으면 자동 (씬에 없으면 만듦)
+    private bool loggedLightWait = false;    // "불빛 때문에 대기" 로그 한 번만
 
     // 상태
     private enum State { Moving, AtEntrance, Armed, Behind }
@@ -112,6 +123,7 @@ public class Hyunwoo : MonoBehaviour
         if (animator == null) animator = GetComponent<Animator>();
         if (roomLights == null) roomLights = RoomLights.GetOrCreate();
         if (wiring == null) wiring = WiringFailure.GetOrCreate();
+        vent = VentOccupancy.GetOrCreate();
 
         reveal = GetComponent<VentLightReveal>();
         if (reveal == null) reveal = gameObject.AddComponent<VentLightReveal>();
@@ -160,14 +172,10 @@ public class Hyunwoo : MonoBehaviour
     // ===== 1. 이동 (엔진B) =====
     void UpdateMoving()
     {
-        // 관리실 환풍구 도착 대기 중: 플레이어가 환풍구를 못 보는 순간 도착
+        // 관리실 환풍구로 들어갈 차례 — 화장실에서 자리·불빛 확인하며 대기
         if (pendingVentArrival)
         {
-            if (!VentLightReveal.PlayerSeesVent(shutter))
-            {
-                pendingVentArrival = false;
-                MoveToNode(roomVentNode);
-            }
+            UpdatePendingVent();
             return;
         }
 
@@ -195,16 +203,39 @@ public class Hyunwoo : MonoBehaviour
         }
     }
 
-    // 다음 노드로 — 관리실 환풍구인데 플레이어가 불빛으로 보고 있으면 끌 때까지 미룸
+    // 다음 노드로 — 관리실 환풍구면 바로 안 가고 대기 분기에서 자리·불빛부터 확인
     void TryMoveTo(int index)
     {
-        if (index == roomVentNode && VentLightReveal.PlayerSeesVent(shutter))
+        if (index == roomVentNode)
         {
             pendingVentArrival = true;
-            Debug.Log("현우: 불빛 켜져 있어서 환풍구 도착 대기 (끄는 순간 도착)");
+            UpdatePendingVent();   // 바로 한 번 확인 (되면 이번 프레임에 도착)
             return;
         }
         MoveToNode(index);
+    }
+
+    // 관리실 환풍구 도착 조건 두 가지 (둘 다 돼야 도착):
+    //  ① 자리: 다른 귀신이 안 쓰고, 비운 뒤 간격 지났고, 우선순위 높은 대기자 없음 → 안 되면 화장실에서 기다림
+    //  ② 불빛: 플레이어가 불빛으로 환풍구를 보고 있으면 끄는 순간 도착 ("눈앞에서 나타나면 안 됨")
+    // ①이 되면 그 순간부터 자리 차지 (불빛 기다리는 동안 다른 귀신이 끼어들지 못하게)
+    void UpdatePendingVent()
+    {
+        if (vent != null && !vent.TryEnter(this, ventPriority, true)) return;   // 대기 로그는 VentOccupancy가 한 번만
+
+        if (VentLightReveal.PlayerSeesVent(shutter))
+        {
+            if (!loggedLightWait)
+            {
+                loggedLightWait = true;
+                Debug.Log("현우: 불빛 켜져 있어서 환풍구 도착 대기 (끄는 순간 도착)");
+            }
+            return;
+        }
+
+        pendingVentArrival = false;
+        loggedLightWait = false;
+        MoveToNode(roomVentNode);
     }
 
     void MoveToNode(int index)
@@ -394,10 +425,24 @@ public class Hyunwoo : MonoBehaviour
     // 스택별 후폭풍 (기획서 §4.4 + 구현노트 §12.2 — 2스택은 CCTV 노이즈 → 조명 나감으로 변경됨)
     void ApplyStackEffect(int stack)
     {
+        // 시계 분 고장 — 1스택부터 쌓이는 효과 (조명처럼 단계가 바뀌는 게 아니라 계속 남음)
+        //   이미 멈췄으면 처음 멈춘 분 그대로. 배선 고장 복구(WiringFailure)가 고쳐줌.
+        Clock_Digital.FreezeMinuteAll();
+
         if (stack >= wiringStack)
         {
-            stacksSpent = true;
-            if (wiring != null) wiring.Begin($"현우 {stack}스택");
+            stacksSpent = true;   // 오늘 밤 3스택 처벌은 한 번만 — 이후엔 배터리만
+            if (wiring != null && wiring.CanBegin)
+            {
+                wiring.Begin($"현우 {stack}스택");
+            }
+            else
+            {
+                // 5시 이후 = 창고런 컷오프 → 배선 고장 대신 배터리 뭉텅 (유저 결정, 구현노트 §15.23)
+                //   현우는 5시에 퇴장하지만, 판정 중이던 건 5시 넘어서 끝날 수 있음 (§15.19)
+                if (BatteryManager.Instance != null) BatteryManager.Instance.Drain(earlyNightBatteryCost);
+                Debug.Log($"★★ 현우 {stack}스택 — 배선 고장 컷오프(5시 이후) → 대신 배터리 -{earlyNightBatteryCost:F0}");
+            }
             return;
         }
 
@@ -417,6 +462,8 @@ public class Hyunwoo : MonoBehaviour
         behindTimer = 0f;
         earlyLeaveTimer = 0f;
         pendingVentArrival = false;
+        loggedLightWait = false;
+        if (vent != null) vent.Release(this);   // 사건 끝 → 환풍구 자리 비움
         MoveToNode(0);
         // 퇴장 시간 지났으면 Update 첫 줄에서 바로 Retire (이미 허공 노드라 안 보임)
     }
@@ -426,6 +473,7 @@ public class Hyunwoo : MonoBehaviour
     {
         retired = true;
         pendingVentArrival = false;
+        if (vent != null) vent.Release(this);   // 화장실에서 기다리던 중이었어도 자리·대기 취소
         if (currentNode != 0)
         {
             if (monitor != null) monitor.GhostMoveStatic();   // 보던 화면에서 사라질 때 지직 (다른 이동과 같게)

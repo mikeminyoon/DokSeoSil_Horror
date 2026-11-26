@@ -54,6 +54,12 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
+
+        // 상태 표시는 밤 시작 때 항상 초기화 — Inspector에서 체크된 채 씬에 저장돼도 시작하자마자 "6시"가 되지 않게
+        // (2026-11-26: isNightOver가 체크된 채 저장돼 있었음 → Hour가 처음부터 6 → 현우 즉시 퇴장·연호 흉포 고정 위험)
+        // Awake에서 하는 이유: 다른 스크립트 Start가 GameManager.Hour를 읽기 전에 풀려 있어야 함
+        isNightOver = false;
+        isGameOver = false;
     }
 
     void Start()
