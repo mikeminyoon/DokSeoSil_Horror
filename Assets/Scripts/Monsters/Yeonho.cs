@@ -67,6 +67,8 @@ public class Yeonho : MonoBehaviour
     [Tooltip("테스트용: 0 이상이면 밤 상관없이 이 AI 사용. -1 = 끔(평소)")]
     public int testAiOverride = -1;
     public int AI => (testAiOverride >= 0) ? testAiOverride : GameManager.ByNight(aiByNight);
+    [Tooltip("엔진A가 한 번 도는 간격(초). 원작 1초 — 클수록 연호가 느리게 옴 (유저 11-27: 템포가 빨라서 1.25, 약 20% 느림)")]
+    public float engineTick = 1.25f;
 
     [Header("2일차 맛보기 (기획서: 4~5시 확정 1회 → 창문 접근 → 종 첫 학습)")]
     public int tasteNight = 2;       // 이 밤엔
@@ -210,6 +212,14 @@ public class Yeonho : MonoBehaviour
     {
         if (sounds != null) sounds.StopAll();
         SetWindowPresence(false);
+    }
+
+    // 다시 켜질 때(창고런 멈춤에서 돌아옴) — 창문 쪽에 있었으면 깜빡임·실루엣 다시 (OnDisable이 꺼뒀음)
+    //   게임 시작 때도 불리지만 그땐 등장 전이라 아무 일 없음
+    void OnEnable()
+    {
+        bool windowSide = state == State.WindowFront || state == State.Peeking || (lurePending && lureFromWindow);
+        if (windowSide) SetWindowPresence(true);
     }
 
     void Update()
@@ -369,9 +379,10 @@ public class Yeonho : MonoBehaviour
         if (lurePending) return;
 
         secondTimer += Time.deltaTime;
-        if (secondTimer >= 1f)
+        float tick = Mathf.Max(0.1f, engineTick);   // 원작 1초 (클수록 느림)
+        if (secondTimer >= tick)
         {
-            secondTimer -= 1f;
+            secondTimer -= tick;
             TickSecond();
         }
     }
@@ -622,7 +633,11 @@ public class Yeonho : MonoBehaviour
                 }
                 if (Ignored()) return;
                 Debug.Log($"★ 종! 연호 창문 쪽에서 반응 중... ({RoomName(windowRoom)}로)");
-                state = State.Moving;     // 떠나는 중 — 빼꼼 카운트·즉사 판정 멈춤 (모습은 반응 텀 동안 그 자리)
+                // 빼꼼이었으면 바로 창문앞으로 움찔 물러남 — 반응 텀(1.5~4초) 동안 빼꼼 자세로 서 있다 가면
+                // "종 쳤는데 빼꼼했다가 감"처럼 보임 (유저 11-27: 창문앞 시간이 끝나는 순간 종이 겹치면 생김)
+                if (state == State.Peeking && windowFrontPos != null)
+                    transform.SetPositionAndRotation(windowFrontPos.position, windowFrontPos.rotation);
+                state = State.Moving;     // 떠나는 중 — 빼꼼 카운트·즉사 판정 멈춤 (모습은 반응 텀 동안 창문앞)
                 currentRoom = -1;
                 ScheduleLure(windowRoom, true);
                 return;

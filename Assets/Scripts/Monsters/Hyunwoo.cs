@@ -438,10 +438,12 @@ public class Hyunwoo : MonoBehaviour
             }
             else
             {
-                // 5시 이후 = 창고런 컷오프 → 배선 고장 대신 배터리 뭉텅 (유저 결정, 구현노트 §15.23)
-                //   현우는 5시에 퇴장하지만, 판정 중이던 건 5시 넘어서 끝날 수 있음 (§15.19)
+                // 정전을 못 냄 → 배선 고장 대신 배터리 뭉텅 (유저 결정, 구현노트 §15.23·§15.26)
+                //   ① 5시 이후 = 창고런 컷오프 (현우는 5시에 퇴장하지만, 판정 중이던 건 5시 넘어서 끝날 수 있음 — §15.19)
+                //   ② 오늘 이미 정전이 났음 (3일차 강제 정전 등 — 밤당 1회)
                 if (BatteryManager.Instance != null) BatteryManager.Instance.Drain(earlyNightBatteryCost);
-                Debug.Log($"★★ 현우 {stack}스택 — 배선 고장 컷오프(5시 이후) → 대신 배터리 -{earlyNightBatteryCost:F0}");
+                string why = (wiring != null && wiring.happenedTonight) ? "오늘 정전 이미 남" : "5시 이후 컷오프";
+                Debug.Log($"★★ 현우 {stack}스택 — 정전 못 냄({why}) → 대신 배터리 -{earlyNightBatteryCost:F0}");
             }
             return;
         }

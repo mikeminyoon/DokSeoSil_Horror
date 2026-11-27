@@ -107,6 +107,15 @@ public class GameManager : MonoBehaviour
         // TODO: 클리어 연출
     }
 
+    // 시계 건너뛰기 — 창고런 복귀 때 (기획서: 창고런 동안 밤 시계 정지 → 복귀 시 30초 점프, 구현노트 §15.26)
+    //   창고런 동안엔 StorageRun이 이 컴포넌트를 꺼서 시계를 멈춤 (Update가 안 돎)
+    public void SkipTime(float seconds)
+    {
+        if (isNightOver || isGameOver || seconds <= 0f) return;
+        elapsed += seconds;   // 시·분은 다음 Update에서 다시 계산 (6시를 넘기면 그때 생존 처리)
+        Debug.Log($"밤 시계 {seconds:F0}초 건너뜀 (창고런 복귀)");
+    }
+
     // 게임오버 (즉사 귀신이 호출 — 나중에 연결)
     public void GameOver(string cause)
     {
